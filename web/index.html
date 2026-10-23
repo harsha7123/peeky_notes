@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peeky — notes and routines with a buddy that reminds you</title>
+  <meta name="description" content="Write notes or connect your Google Sheet routine. When it's time, a small 3D buddy walks onto your laptop screen and reminds you.">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script type="importmap">{ "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }</script>
+</head>
+<body>
+  <div id="nav"></div>
+
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Peeky for your laptop</p>
+      <h1 class="headline">Your to-dos.<br>Now with a buddy.</h1>
+      <p class="lede">Write a note or plan your day in Google Sheets.<br>When it's time, a little 3D buddy walks onto your screen and tells you.</p>
+      <div class="ctas">
+        <a class="btn" href="/signup">Get started free</a>
+        <a class="btn ghost chev" href="#how">See how it works</a>
+      </div>
+    </div>
+    <div class="wrap">
+      <div class="desk" aria-label="Peeky on a laptop screen">
+        <div class="desk-bar"><i></i><i></i><i></i></div>
+        <div class="desk-doc"><div style="width:70%"></div><div></div><div style="width:85%"></div><div style="width:60%"></div><div></div><div style="width:40%"></div></div>
+        <div class="desk-panel">
+          <h4>Reminders</h4>
+          <div class="r"><i></i><span>Drink water<small>Today, 3:00 PM</small></span></div>
+          <div class="r"><i></i><span>Call mom<small>Today, 5:00 PM</small></span></div>
+          <div class="r"><i></i><span>Gym<small>Today, 6:30 PM</small></span></div>
+          <div class="r"><i></i><span>Read 20 pages<small>Today, 9:00 PM</small></span></div>
+        </div>
+        <div class="desk-note">
+          <div class="top"><span>Bolt · Peeky</span><span>3:00 PM</span></div>
+          <b>Drink water</b>
+          <span class="sub">Beep boop! It's time.</span>
+          <div class="acts"><span>Done</span><span>5 min</span><span>15 min</span></div>
+        </div>
+        <canvas id="heroBuddy"></canvas>
+      </div>
+    </div>
+  </header>
+
+  <section class="section alt" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 class="h2">Three ways to stay on track.</h2>
+        <p class="lede">Peeky lives quietly at the edge of your screen until the moment it matters.</p>
+      </div>
+      <div class="grid3">
+        <div class="card feature"><div class="ico" data-icon="edge"></div><h3 class="h3">Notes that peek.</h3>
+          <p>A slim handle sits on the edge of your screen. Hover it and your notes slide out. Write “call mom at 5pm” and Peeky understands.</p></div>
+        <div class="card feature"><div class="ico" data-icon="sheet"></div><h3 class="h3">Your routine, from a Sheet.</h3>
+          <p>Already plan your day in Google Sheets? Connect it once. Every row with a time becomes a daily reminder, and edits sync automatically.</p></div>
+        <div class="card feature"><div class="ico" data-icon="buddy"></div><h3 class="h3">A buddy that shows up.</h3>
+          <p>No easy-to-miss pop-ups. Your buddy walks in, says what to do, follows your cursor, and nudges you again if you ignore it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how">
+    <div class="wrap">
+      <div class="section-head"><h2 class="h2">Set up in a minute.</h2></div>
+      <div class="steps">
+        <div class="step"><h3 class="h3">Create your account.</h3><p>Sign up on the web. Your notes, routine and buddies sync everywhere.</p></div>
+        <div class="step"><h3 class="h3">Install on your laptop.</h3><p>Open the Peeky app and click Sign in. Approve it in your browser — done.</p></div>
+        <div class="step"><h3 class="h3">Add notes or a Sheet.</h3><p>Type to-dos with a time, or paste your Google Sheet link. Your buddy handles the rest.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section alt" id="routine">
+    <div class="wrap split">
+      <div>
+        <p class="eyebrow">Google Sheets</p>
+        <h2 class="h2">Plan in a sheet.<br>Get reminded on screen.</h2>
+        <p class="lede">Four simple columns: Time, Task, Days and Buddy. Peeky reads your sheet and turns each row into a daily reminder — weekdays, weekends, or any days you choose.</p>
+      </div>
+      <div class="card sheet">
+        <div class="file"><i></i>My Daily Routine</div>
+        <table>
+          <thead><tr><th>Time</th><th>Task</th><th>Days</th><th>Buddy</th></tr></thead>
+          <tbody>
+            <tr><td>7:00 AM</td><td>Drink water</td><td>Daily</td><td>cat</td></tr>
+            <tr><td>9:30 AM</td><td>Team standup</td><td>Weekdays</td><td>robot</td></tr>
+            <tr><td>1:00 PM</td><td>Stretch break</td><td>Daily</td><td>penguin</td></tr>
+            <tr><td>6:30 PM</td><td>Gym</td><td>Mon, Wed, Fri</td><td>duck</td></tr>
+            <tr><td>10:30 PM</td><td>Screens off</td><td>Daily</td><td>ghost</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="buddies">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 class="h2">Pick your buddy.</h2>
+        <p class="lede">Hand-crafted 3D characters. Two are free — collect the rest.</p>
+      </div>
+      <div class="shelf" id="shelf"></div>
+    </div>
+  </section>
+
+  <section class="section alt" id="pricing">
+    <div class="wrap">
+      <div class="section-head"><h2 class="h2">Simple pricing.</h2></div>
+      <div class="plans">
+        <div class="card plan">
+          <h3 class="h3">Peeky</h3>
+          <div class="price">Free</div>
+          <span class="sub">Forever</span>
+          <ul><li>Unlimited notes and reminders</li><li>Google Sheets daily routine</li><li>Bolt and Miso buddies</li><li>Sync across your computers</li></ul>
+          <a class="btn gray block" href="/signup">Get started</a>
+        </div>
+        <div class="card plan">
+          <h3 class="h3">Every Buddy</h3>
+          <div class="price" id="bundlePrice">$4.99</div>
+          <span class="sub">One-time purchase</span>
+          <ul><li>Everything in Peeky</li><li>All current buddies</li><li>Every new buddy we add</li><li>Or buy buddies one at a time</li></ul>
+          <a class="btn block" href="/signup?next=/app%23buddies">Get Every Buddy</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section center" id="download">
+    <div class="wrap">
+      <h2 class="h2">Never miss the small things.</h2>
+      <p class="lede">Free to start. Takes a minute.</p>
+      <div class="ctas" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:28px">
+        <a class="btn" href="/signup">Create your account</a>
+        <a class="btn gray" id="dl" href="/download/windows">Download for Windows</a>
+      </div>
+      <p class="small sub" id="dlNote" style="margin-top:14px">Windows 10 and 11.</p>
+    </div>
+  </section>
+
+  <footer class="footer"><div class="wrap"><span>© 2026 Peeky.</span><span><a class="muted-link" href="/signin">Sign in</a> · <a class="muted-link" href="#pricing">Pricing</a> · <a class="muted-link" href="/privacy">Privacy</a> · <a class="muted-link" href="/terms">Terms</a></span></div></footer>
+
+  <script type="module" src="/assets/landing.js"></script>
+</body>
+</html>

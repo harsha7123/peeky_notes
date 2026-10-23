@@ -1,0 +1,62 @@
+{
+  "name": "peeky",
+  "productName": "Peeky",
+  "version": "1.0.0",
+  "description": "Peeky — notes and daily routines with a 3D buddy that reminds you on your laptop",
+  "author": "Peeky",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node server/index.js",
+    "seed": "node server/seed.js",
+    "smoke": "node scripts/smoke.js",
+    "icon": "node scripts/make-icon.js",
+    "dist": "node scripts/dist.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "peeky": {
+    "server": "http://localhost:8787"
+  },
+  "build": {
+    "appId": "com.peeky.app",
+    "productName": "Peeky",
+    "copyright": "© 2026 Peeky",
+    "npmRebuild": false,
+    "compression": "maximum",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": [
+      "main.js",
+      "package.json",
+      "src/**/*",
+      "!node_modules/three/src/**",
+      "!node_modules/three/build/three.cjs",
+      "!node_modules/three/build/three.webgpu*",
+      "!node_modules/three/build/three.tsl*",
+      "!node_modules/three/build/three.module.min.js",
+      "!node_modules/three/examples/{fonts,textures,models,screenshots,files,sounds}/**",
+      "!node_modules/three/examples/*.html",
+      "!node_modules/three/examples/jsm/libs/{draco,basis,ammo*,rhino3dm}/**"
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "Peeky-Setup-${version}.${ext}",
+      "shortcutName": "Peeky",
+      "createDesktopShortcut": true,
+      "runAfterFinish": true
+    }
+  }
+}

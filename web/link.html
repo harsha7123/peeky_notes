@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in on your computer — Peeky</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <nav class="nav"><div class="wrap"><a class="logo" href="/"><span class="logo-mark"></span>Peeky</a></div></nav>
+  <main class="center-page">
+    <div class="card auth-card center" id="ask">
+      <div class="laptop" style="margin:0 auto 26px"></div>
+      <h1 class="h3">Sign in to Peeky on your computer?</h1>
+      <p class="sub small" style="margin:10px 0 0">Make sure this code matches the one shown in the Peeky app.</p>
+      <div class="code" id="code">····-····</div>
+      <p class="sub small" id="who" style="margin:0 0 22px"></p>
+      <div class="error" id="error" role="alert"></div>
+      <button class="btn block" id="allow">Allow</button>
+      <p style="margin:12px 0 0"><a class="small muted-link" href="/app">Cancel</a></p>
+    </div>
+    <div class="card auth-card center hidden" id="done">
+      <div class="big-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4L19 7"/></svg></div>
+      <h1 class="h3">You're signed in.</h1>
+      <p class="sub" style="margin:10px 0 24px">Go back to the Peeky app — it will finish setting up on its own. You can close this tab.</p>
+      <a class="btn gray" href="/app">Open Peeky on the web</a>
+    </div>
+  </main>
+  <script type="module">
+    import { api, $ } from '/assets/common.js';
+    const code = (new URLSearchParams(location.search).get('code') || '').toUpperCase();
+    $('#code').textContent = code || '····-····';
+    try {
+      const me = await api('/api/me');
+      $('#who').textContent = `Signing in as ${me.user.email}`;
+    } catch {
+      location.replace(`/signin?next=${encodeURIComponent(location.pathname + location.search)}`);
+    }
+    if (code) api(`/api/device/${encodeURIComponent(code)}`).catch((e) => { $('#error').textContent = e.message; $('#allow').disabled = true; });
+    else { $('#error').textContent = 'Open this page from the Peeky app.'; $('#allow').disabled = true; }
+    $('#allow').addEventListener('click', async () => {
+      $('#allow').disabled = true;
+      try {
+        await api('/api/device/approve', { method: 'POST', body: { code } });
+        $('#ask').classList.add('hidden');
+        $('#done').classList.remove('hidden');
+      } catch (e) {
+        $('#error').textContent = e.message;
+      }
+    });
+  </script>
+</body>
+</html>

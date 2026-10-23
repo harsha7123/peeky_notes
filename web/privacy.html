@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy — Peeky</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <style>.doc { max-width: 720px; margin: 0 auto; padding: 56px 22px 96px; } .doc h2 { font: 600 22px/1.3 var(--display); margin: 36px 0 8px; } .doc p, .doc li { color: var(--sub); } .doc strong { color: var(--text); }</style>
+</head>
+<body>
+  <nav class="nav"><div class="wrap"><a class="logo" href="/"><span class="logo-mark"></span>Peeky</a></div></nav>
+  <main class="doc">
+    <h1 class="h2">Privacy Policy</h1>
+    <p>Last updated {{UPDATED}}. This policy explains what {{COMPANY}} ("we") collects when you use Peeky — the website, web app and desktop app — and why.</p>
+
+    <h2>What we collect</h2>
+    <ul>
+      <li><strong>Account details:</strong> your name, email address and a securely hashed password.</li>
+      <li><strong>Your content:</strong> the notes you write and the reminders in them, your buddy settings, and — if you connect one — the link to your Google Sheet and the rows we read from it.</li>
+      <li><strong>Devices:</strong> the name of each computer you sign in on and when it was last active, so you can sign it out remotely.</li>
+      <li><strong>Purchases:</strong> which buddies you own. Payments are processed by Stripe; we never see or store your card number.</li>
+    </ul>
+
+    <h2>How we use it</h2>
+    <p>Only to run Peeky: to sync your notes and routine to your devices, show your reminders, unlock buddies you've bought, and send account emails such as password resets. We don't sell your data and we don't use it for advertising.</p>
+
+    <h2>Google Sheets</h2>
+    <p>If you connect a sheet, Peeky reads it through its share link about every 15 minutes. We only read it — we never change it. Disconnect at any time from the Routine page and we stop reading it and delete the stored rows.</p>
+
+    <h2>Services we use</h2>
+    <p>Hosting for our servers, Stripe for payments, and an email delivery provider for account emails. Each only receives what it needs to do its job.</p>
+
+    <h2>Keeping and deleting your data</h2>
+    <p>We keep your data while your account is open. You can delete your account any time from Account → Delete Account, which permanently removes your notes, routine, devices and purchase records from our database. Payment records Stripe must keep for legal reasons are kept by Stripe.</p>
+
+    <h2>Security</h2>
+    <p>Passwords and session tokens are stored only as hashes, all traffic is encrypted with HTTPS, and computers you sign out from the Devices page lose access immediately.</p>
+
+    <h2>Children</h2>
+    <p>Peeky isn't directed at children under 13, and we don't knowingly collect their data.</p>
+
+    <h2>Contact</h2>
+    <p>Questions or requests about your data: <a href="mailto:{{EMAIL}}">{{EMAIL}}</a>.</p>
+  </main>
+  <footer class="footer"><div class="wrap"><span>© 2026 {{COMPANY}}</span><span><a class="muted-link" href="/terms">Terms</a> · <a class="muted-link" href="/privacy">Privacy</a></span></div></footer>
+</body>
+</html>

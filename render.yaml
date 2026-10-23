@@ -1,0 +1,33 @@
+# One-click deploy on Render (https://render.com): New → Blueprint → pick this repo.
+# A persistent disk keeps the SQLite database across deploys.
+services:
+  - type: web
+    name: peeky
+    runtime: docker
+    plan: starter
+    healthCheckPath: /healthz
+    disk:
+      name: peeky-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PEEKY_DATA_DIR
+        value: /data
+      - key: PUBLIC_URL
+        sync: false          # e.g. https://peeky.app
+      - key: STRIPE_SECRET_KEY
+        sync: false          # sk_live_…
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false          # whsec_… (Stripe → Developers → Webhooks → endpoint …/api/stripe/webhook)
+      - key: RESEND_API_KEY
+        sync: false          # re_… for password-reset and welcome emails
+      - key: MAIL_FROM
+        sync: false          # e.g. Peeky <hello@peeky.app> (domain verified in Resend)
+      - key: COMPANY_NAME
+        sync: false
+      - key: SUPPORT_EMAIL
+        sync: false
+      - key: WINDOWS_DOWNLOAD_URL
+        sync: false          # link to Peeky-Setup.exe (e.g. a GitHub Release asset)

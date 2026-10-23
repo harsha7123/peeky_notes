@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reset password — Peeky</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <nav class="nav"><div class="wrap"><a class="logo" href="/"><span class="logo-mark"></span>Peeky</a></div></nav>
+  <main class="center-page">
+    <form id="ask" class="card auth-card hidden" novalidate>
+      <h1 class="h3">Forgot your password?</h1>
+      <p class="sub small center" style="margin:10px 0 6px">Enter your email and we'll send you a link to reset it.</p>
+      <label class="lbl" for="email">Email</label>
+      <input class="field" id="email" type="email" autocomplete="email" placeholder="name@example.com" required>
+      <div class="error" id="askErr" role="alert"></div>
+      <button class="btn block" type="submit">Send reset link</button>
+      <p class="small center" style="margin:18px 0 0"><a href="/signin">Back to sign in</a></p>
+    </form>
+    <div id="sent" class="card auth-card center hidden">
+      <h1 class="h3">Check your email</h1>
+      <p class="sub" style="margin:10px 0 24px">If there's a Peeky account for that address, a reset link is on its way. It works for 1 hour.</p>
+      <a class="btn gray" href="/signin">Back to sign in</a>
+    </div>
+    <form id="set" class="card auth-card hidden" novalidate>
+      <h1 class="h3">Choose a new password</h1>
+      <label class="lbl" for="pw">New password</label>
+      <input class="field" id="pw" type="password" autocomplete="new-password" placeholder="At least 8 characters" required>
+      <div class="error" id="setErr" role="alert"></div>
+      <button class="btn block" type="submit">Save password</button>
+    </form>
+  </main>
+  <script type="module">
+    import { api, $ } from '/assets/common.js';
+    const token = new URLSearchParams(location.search).get('token');
+    $(token ? '#set' : '#ask').classList.remove('hidden');
+    $('#ask').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await api('/api/auth/forgot', { method: 'POST', body: { email: $('#email').value } });
+        $('#ask').classList.add('hidden');
+        $('#sent').classList.remove('hidden');
+      } catch (err) { $('#askErr').textContent = err.message; }
+    });
+    $('#set').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await api('/api/auth/reset', { method: 'POST', body: { token, password: $('#pw').value } });
+        location.replace('/app');
+      } catch (err) { $('#setErr').textContent = err.message; }
+    });
+  </script>
+</body>
+</html>

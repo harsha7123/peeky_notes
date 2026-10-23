@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in — Peeky</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <nav class="nav"><div class="wrap"><a class="logo" href="/"><span class="logo-mark"></span>Peeky</a></div></nav>
+  <main class="center-page">
+    <form id="form" class="card auth-card" novalidate>
+      <h1 class="h3" id="title">Sign in to Peeky</h1>
+      <div class="seg" role="tablist">
+        <button type="button" data-mode="signin">Sign in</button>
+        <button type="button" data-mode="signup">Create account</button>
+      </div>
+      <div id="nameWrap">
+        <label class="lbl" for="name">Name</label>
+        <input class="field" id="name" autocomplete="name" placeholder="Your name">
+      </div>
+      <label class="lbl" for="email">Email</label>
+      <input class="field" id="email" type="email" autocomplete="email" placeholder="name@example.com" required>
+      <label class="lbl" for="password">Password</label>
+      <input class="field" id="password" type="password" placeholder="Password" required>
+      <p class="small" id="forgot" style="margin:8px 0 0;text-align:right"><a href="/forgot">Forgot password?</a></p>
+      <div class="error" id="error" role="alert"></div>
+      <button class="btn block" id="submit" type="submit">Sign in</button>
+      <p class="small sub center" id="foot" style="margin:18px 0 0"></p>
+    </form>
+  </main>
+  <script type="module">
+    import { api, $ } from '/assets/common.js';
+    const params = new URLSearchParams(location.search);
+    const next = params.get('next')?.startsWith('/') ? params.get('next') : '/app';
+    let mode = location.pathname === '/signup' ? 'signup' : 'signin';
+
+    function setMode(m) {
+      mode = m;
+      const up = m === 'signup';
+      $('#title').textContent = up ? 'Create your Peeky account' : 'Sign in to Peeky';
+      $('#submit').textContent = up ? 'Create account' : 'Sign in';
+      $('#nameWrap').classList.toggle('hidden', !up);
+      $('#password').autocomplete = up ? 'new-password' : 'current-password';
+      $('#password').placeholder = up ? 'At least 8 characters' : 'Password';
+      $('#foot').innerHTML = up ? 'By creating an account you agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.' : '';
+      $('#forgot').classList.toggle('hidden', up);
+      for (const b of document.querySelectorAll('.seg button')) b.classList.toggle('on', b.dataset.mode === m);
+      $('#error').textContent = '';
+      history.replaceState(null, '', `/${m}${location.search}`);
+      document.title = `${up ? 'Create account' : 'Sign in'} — Peeky`;
+    }
+    document.querySelector('.seg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setMode(b.dataset.mode); });
+    setMode(mode);
+
+    // Already signed in? Skip the form.
+    api('/api/session').then(({ user }) => user && location.replace(next));
+
+    $('#form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('#error').textContent = '';
+      $('#submit').disabled = true;
+      try {
+        await api(`/api/auth/${mode}`, { method: 'POST', body: { name: $('#name').value, email: $('#email').value, password: $('#password').value } });
+        location.replace(next);
+      } catch (err) {
+        $('#error').textContent = err.message;
+        $('#submit').disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

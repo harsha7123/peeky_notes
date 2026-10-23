@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Peeky</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script type="importmap">{ "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }</script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="side">
+      <a class="logo" href="/"><span class="logo-mark"></span>Peeky</a>
+      <div id="sideNav"></div>
+      <div class="me"><div class="avatar" id="avatar"></div><div class="who"><b id="meName"></b><span id="meEmail"></span></div></div>
+    </aside>
+    <main class="main">
+      <div class="mobile-head"><a class="logo" href="/"><span class="logo-mark"></span>Peeky</a><div id="avatarSm" class="avatar"></div></div>
+      <div id="view"></div>
+    </main>
+    <nav class="tabbar" id="tabbar"></nav>
+  </div>
+  <script type="module" src="/assets/app.js"></script>
+</body>
+</html>
