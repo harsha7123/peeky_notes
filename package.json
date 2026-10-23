@@ -13,7 +13,8 @@
     "seed": "node server/seed.js",
     "smoke": "node scripts/smoke.js",
     "icon": "node scripts/make-icon.js",
-    "dist": "node scripts/dist.js"
+    "dist": "node scripts/dist.js",
+    "postinstall": "node scripts/vendor.js"
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -32,7 +33,10 @@
     "copyright": "© 2026 Peeky",
     "npmRebuild": false,
     "compression": "maximum",
-    "directories": { "output": "dist", "buildResources": "build" },
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
     "files": [
       "main.js",
       "package.json",
@@ -41,13 +45,17 @@
       "!node_modules/three/build/three.cjs",
       "!node_modules/three/build/three.webgpu*",
       "!node_modules/three/build/three.tsl*",
-      "!node_modules/three/build/three.module.min.js",
-      "!node_modules/three/examples/{fonts,textures,models,screenshots,files,sounds}/**",
-      "!node_modules/three/examples/*.html",
-      "!node_modules/three/examples/jsm/libs/{draco,basis,ammo*,rhino3dm}/**"
+      "!node_modules/three/build/three.module.min.js"
     ],
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "build/icon.png"
     },
     "nsis": {

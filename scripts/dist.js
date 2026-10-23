@@ -12,6 +12,7 @@ if (!/^https:\/\//.test(server) && !process.env.ALLOW_HTTP) {
 
 let root = path.join(__dirname, '..');
 execFileSync(process.execPath, [path.join(__dirname, 'make-icon.js')], { stdio: 'inherit' });
+execFileSync(process.execPath, [path.join(__dirname, 'vendor.js')], { stdio: 'inherit' });
 
 // The NSIS installer compiler can't handle long Windows paths, so build from a temporary short drive letter.
 let drive = null;
