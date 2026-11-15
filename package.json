@@ -14,7 +14,8 @@
     "smoke": "node scripts/smoke.js",
     "icon": "node scripts/make-icon.js",
     "dist": "node scripts/dist.js",
-    "postinstall": "node scripts/vendor.js"
+    "postinstall": "node scripts/vendor.js",
+    "cutout": "electron scripts/cutout.js"
   },
   "dependencies": {
     "express": "^4.21.2",

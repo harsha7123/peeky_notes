@@ -8,74 +8,67 @@
     { "imports": { "three": "../node_modules/three/build/three.module.js", "three/addons/": "./vendor/three-addons/" } }
   </script>
   <style>
-    :root {
-      --card: rgba(246, 246, 248, 0.97); --text: #1d1d1f; --sub: #6e6e73; --hair: rgba(0, 0, 0, 0.08);
-      --btn: rgba(0, 0, 0, 0.05); --btn-hover: rgba(0, 0, 0, 0.09); --blue: #007aff;
-      --shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.18);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --card: rgba(44, 44, 46, 0.97); --text: #f5f5f7; --sub: #98989d; --hair: rgba(255, 255, 255, 0.1);
-        --btn: rgba(255, 255, 255, 0.08); --btn-hover: rgba(255, 255, 255, 0.14); --blue: #0a84ff;
-        --shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 10px 30px rgba(0, 0, 0, 0.5);
-      }
-    }
+    /* Midnight black, electric cobalt, acid lime — flat colors only. */
+    :root { --ink: #07080b; --card: #10131a; --raise: #1b2030; --text: #f3f5f9; --sub: #8b93a7; --line: rgba(255, 255, 255, 0.1);
+      --cobalt: #2b59ff; --lime: #c6ff34; --lime-ink: #0c1200; }
     html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; color: var(--text);
-      font: 13px/1.38 -apple-system, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      font: 13.5px/1.4 -apple-system, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
       -webkit-font-smoothing: antialiased; }
-    #stage { position: absolute; right: 0; bottom: 0; width: 150px; height: 190px; }
-    .card { position: absolute; right: 136px; bottom: 34px; width: 290px; background: var(--card); border-radius: 16px;
-      box-shadow: var(--shadow); padding: 11px 12px 10px; transform-origin: 100% 80%;
-      animation: in .42s cubic-bezier(.2, 1.2, .3, 1); }
+    #stage { position: absolute; right: 6px; bottom: 0; width: 230px; height: 300px; }
+    .card { position: absolute; right: 16px; bottom: 296px; width: 336px; background: var(--card); border: 1px solid var(--line);
+      border-radius: 18px; padding: 13px 14px 14px; box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+      transform-origin: 68% 100%; animation: in .42s cubic-bezier(.2, 1.3, .3, 1); }
+    /* tail pointing down at the buddy */
+    .card::after { content: ""; position: absolute; right: 96px; bottom: -8px; width: 14px; height: 14px; background: var(--card);
+      border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); transform: rotate(45deg); }
     .card.hidden { display: none; }
-    .card.out { animation: out .25s ease-in forwards; }
+    .card.out { animation: out .22s ease-in forwards; }
     .card.nudge { animation: nudge .5s; }
-    .top { display: flex; align-items: center; gap: 7px; color: var(--sub); font-size: 11.5px; }
-    .top img { width: 20px; height: 20px; border-radius: 5px; background: var(--btn); object-fit: cover; }
-    .top .app { flex: 1; letter-spacing: .01em; }
-    .close { width: 20px; height: 20px; border-radius: 50%; border: 0; background: var(--btn); color: var(--sub);
-      display: grid; place-items: center; cursor: pointer; padding: 0; }
-    .close:hover { background: var(--btn-hover); color: var(--text); }
-    .title { font-weight: 600; font-size: 13.5px; margin: 7px 0 1px; }
-    .body { color: var(--text); opacity: .85; }
-    .note { color: var(--sub); font-size: 11.5px; margin-top: 2px; }
-    .actions { display: flex; gap: 6px; margin-top: 10px; }
-    .actions button { flex: 1; border: 0; border-radius: 8px; background: var(--btn); color: var(--text); padding: 6px 0;
-      font: inherit; font-weight: 500; cursor: pointer; transition: background .12s; }
-    .actions button:hover { background: var(--btn-hover); }
-    .actions .done { color: var(--blue); font-weight: 600; }
-    .more { color: var(--sub); font-size: 11px; margin-top: 7px; text-align: center; }
+    .top { display: flex; align-items: center; gap: 8px; }
+    .who { font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--lime); white-space: nowrap; }
+    .tag { font-size: 11px; font-weight: 600; color: #cfd8ff; background: rgba(43, 89, 255, 0.28); border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
+    .when { margin-left: auto; font-size: 11.5px; color: var(--sub); font-variant-numeric: tabular-nums; }
+    .close { width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--raise); color: var(--sub); display: grid; place-items: center; cursor: pointer; padding: 0; flex: none; }
+    .close:hover { color: var(--text); background: #2a3146; }
+    .title { font-weight: 650; font-size: 16px; letter-spacing: -0.01em; margin: 9px 0 2px; }
+    .body { color: var(--sub); }
+    .note { color: var(--sub); font-size: 11.5px; margin-top: 3px; opacity: .8; }
+    .note:empty, .body:empty { display: none; }
+    .actions { display: flex; gap: 7px; margin-top: 12px; }
+    .actions button { flex: 1; height: 36px; border: 0; border-radius: 11px; background: var(--raise); color: var(--text);
+      font: inherit; font-weight: 600; cursor: pointer; transition: background .12s, transform .08s; }
+    .actions button:hover { background: #2a3146; }
+    .actions button:active { transform: scale(.97); }
+    .actions .yes { background: var(--lime); color: var(--lime-ink); flex: 1.5; }
+    .actions .yes:hover { background: #d6ff66; }
+    .more { color: var(--sub); font-size: 11px; margin-top: 8px; text-align: center; }
     .more:empty { display: none; }
     #fx { position: absolute; inset: 0; pointer-events: none; }
-    .bit { position: absolute; right: 70px; bottom: 110px; width: 6px; height: 6px; border-radius: 50%;
+    .bit { position: absolute; right: 115px; bottom: 170px; width: 7px; height: 7px; border-radius: 2px;
       animation: burst 1.1s cubic-bezier(.1, .7, .3, 1) forwards; }
-    .zzz { position: absolute; right: 50px; bottom: 165px; font: 600 15px -apple-system, "Segoe UI", system-ui; color: var(--sub);
+    .zzz { position: absolute; right: 70px; bottom: 250px; font: 700 16px -apple-system, "Segoe UI", system-ui; color: var(--lime);
       animation: float 1.6s ease-out forwards; }
-    @keyframes in { from { transform: scale(.85) translateX(16px); opacity: 0; } }
-    @keyframes out { to { transform: scale(.92) translateX(12px); opacity: 0; } }
-    @keyframes nudge { 25% { transform: translateX(-5px); } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); } }
-    @keyframes burst { to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+    @keyframes in { from { transform: scale(.8) translateY(14px); opacity: 0; } }
+    @keyframes out { to { transform: scale(.92) translateY(10px); opacity: 0; } }
+    @keyframes nudge { 25% { transform: translateX(-6px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-2px); } }
+    @keyframes burst { to { transform: translate(var(--dx), var(--dy)) rotate(200deg); opacity: 0; } }
     @keyframes float { to { transform: translate(18px, -50px) scale(1.4); opacity: 0; } }
   </style>
 </head>
 <body>
   <div id="card" class="card hit hidden">
     <div class="top">
-      <img id="avatar" alt="">
-      <span id="app" class="app"></span>
-      <span id="when"></span>
+      <span id="who" class="who"></span>
+      <span id="tag" class="tag"></span>
+      <span id="when" class="when"></span>
       <button class="close" data-act="dismiss" title="Dismiss">
-        <svg width="8" height="8" viewBox="0 0 8 8"><path d="M1 1l6 6M7 1L1 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <svg width="8" height="8" viewBox="0 0 8 8"><path d="M1 1l6 6M7 1L1 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       </button>
     </div>
     <div id="title" class="title"></div>
     <div id="body" class="body"></div>
     <div id="note" class="note"></div>
-    <div class="actions">
-      <button class="done" data-act="done">Done</button>
-      <button data-act="snooze" data-min="5">5 min</button>
-      <button data-act="snooze" data-min="15">15 min</button>
-    </div>
+    <div id="actions" class="actions"></div>
     <div id="more" class="more"></div>
   </div>
   <canvas id="stage" class="hit"></canvas>

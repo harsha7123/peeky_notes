@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const db = require('./db');
 const mail = require('./mail');
 const { fetchRoutine } = require('./sheets');
-const { parseNote } = require('../src/parse');
+const { parseNote, registerBuddyIds } = require('../src/parse');
 
 const PROD = process.env.NODE_ENV === 'production';
 const PORT = +process.env.PORT || 8787;
@@ -333,6 +333,7 @@ app.put('/api/notes/:id', auth, (req, res) => {
   };
   // Desktop clients send their own reminder state (fired/snoozed); web edits get reminders parsed here.
   const prev = existing ? JSON.parse(existing.reminders) : [];
+  registerBuddyIds(catalog().items.map((i) => i.id));
   const reminders = Array.isArray(b.reminders) ? b.reminders.slice(0, 500) : parseNote(note, prev);
   db.prepare(`INSERT INTO notes (id, user_id, text, color, buddy, pinned, reminders, deleted, created, updated)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

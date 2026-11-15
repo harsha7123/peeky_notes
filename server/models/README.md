@@ -1,32 +1,53 @@
-# Adding your own 3D buddies
+# Adding your own buddies
 
-1. Export your character as a single **`.glb`** file (glTF binary, textures embedded) and put it in this folder,
-   e.g. `server/models/fox.glb`.
-2. Add an entry to `server/catalog.json` → `items`:
+Two kinds of buddy can be added without touching the app's code. Both show up in the web store, the desktop
+Buddy tab (locked until bought) and on screen for anyone who owns them. The catalog (`server/catalog.json`) is
+re-read on every request, so no restart is needed.
+
+## 1. Realistic "cut-out" buddies (from one picture)
+
+A cut-out buddy is a single picture of a character **standing upright, facing the camera, feet slightly apart**,
+on a **plain background**. Peeky removes the background, splits the legs at the hip and animates them, so the
+character walks in, breathes, hops and leans toward the cursor.
+
+```
+npm run cutout -- path/to/picture.jpg mybuddy
+```
+
+This writes `server/models/mybuddy.png` (transparent and trimmed) and prints the catalog entry to paste into
+`server/catalog.json` → `items`, with the hip line and leg gap already measured:
 
 ```json
 {
-  "id": "fox",
-  "name": "Fern",
-  "kind": "Fox",
-  "price": 299,
-  "model": "/models/fox.glb",
-  "blurb": "A clever fox who never forgets a deadline.",
-  "hello": "Hey there! Fern here.",
-  "voice": { "pitch": 1.3, "rate": 1.05 }
+  "id": "mybuddy", "name": "Mybuddy", "kind": "Realistic", "price": 199,
+  "image": "/models/mybuddy.png", "hip": 0.47, "split": 0.5,
+  "blurb": "One line about this buddy.", "hello": "Hey! Quick reminder.", "voice": { "pitch": 1, "rate": 1 }
 }
 ```
 
-`price` is in cents (`299` = $2.99, `0` = free). The catalog is re-read on every request, so no restart is needed.
+Tips:
+- Use a picture **at least 1000 px tall** (2000+ is better). `kai.png` and `mira.png` here are small previews —
+  replace them with full-size versions for a crisp result.
+- The background must be one flat colour that the character doesn't wear (light grey or green works well).
+- `hip` is where the legs join the body (0 = feet, 1 = head). `split` is the gap between the legs (0 = left edge,
+  1 = right edge). Nudge them if the walk looks off.
+- Only use characters you have the rights to: your own art, commissioned work, or images you generated.
+  Don't use real people's likenesses or other apps' characters.
 
-That's it — the buddy appears in the web store, in the desktop app's Buddy tab (locked until bought), and on screen
-for anyone who owns it. "Every Buddy" bundle owners get it automatically.
+## 2. 3D models (`.glb`)
 
-## Model tips
+Export the character as a single **`.glb`** file (textures embedded), put it in this folder, and add:
 
-- **Size and position don't matter** — Peeky scales every model to the same height, stands it on the ground and centers it.
-- **Face +Z** (toward the camera) in your 3D tool.
-- **Animations are optional.** If the file has clips, Peeky picks them by name:
+```json
+{
+  "id": "fox", "name": "Fern", "kind": "Fox", "price": 299, "model": "/models/fox.glb",
+  "blurb": "A clever fox who never forgets a deadline.", "hello": "Hey there! Fern here.", "voice": { "pitch": 1.3, "rate": 1.05 }
+}
+```
+
+- Size and position don't matter — Peeky scales every model to the same height and stands it on the ground.
+- Face **+Z** (toward the camera) in your 3D tool. Add `"tall": false` to show it at toy size instead of full height.
+- Animations are optional. If the file has clips, Peeky picks them by name:
 
 | Peeky moment | Clip names it looks for |
 |---|---|
@@ -37,5 +58,4 @@ for anyone who owns it. "Every Buddy" bundle owners get it automatically.
 | Ignored (nagging) | `No`, `Shake`, `Angry` |
 | Snoozed | `Sleep`, `Sit`, `Lie` |
 
-  Without clips, Peeky animates the whole model (bobbing, hopping, turning toward the cursor).
-- Keep files under ~5 MB so they load quickly.
+`price` is in cents (`299` = $2.99, `0` = free). "Every Buddy" owners get new buddies automatically.

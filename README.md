@@ -32,6 +32,17 @@ The desktop app talks to `http://localhost:8787` by default; set `PEEKY_SERVER` 
    follows the cursor with its eyes, nags if ignored, and offers **Done / 5 min / 15 min**. Done ticks the checkbox
    in the note on every device.
 
+## Everyday features (desktop app)
+
+- **Quick add:** type "call mom at 5pm" in the bar at the top of the panel; it lands in an Inbox note with a reminder.
+- **Today tab:** done-today count, streak, focus session (25/50 min — the buddy tells you when time's up) and
+  "Pause reminders" for meetings.
+- **Healthy nudges:** optional water, stretch, eye-break and posture nudges at intervals you choose. The buddy asks,
+  you answer **Yes** or **Later**. Nudges wait while a focus session runs.
+- **Realistic buddies:** "cut-out" buddies made from a single picture walk in at full height
+  (see [server/models/README.md](server/models/README.md) and `npm run cutout`).
+- **Design:** midnight black, electric cobalt and acid lime, flat colours only.
+
 ## Store / in-app purchases
 
 - Buddies are listed in `server/catalog.json` with a price in cents; `0` is free. `"Every Buddy"` unlocks all.

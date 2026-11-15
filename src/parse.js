@@ -7,6 +7,10 @@ const UNITS = {
 };
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 const BUDDIES = ['robot', 'cat', 'penguin', 'ghost', 'slime', 'duck'];
+// Store buddies (from the catalog) can be used as #tags too.
+function registerBuddyIds(ids) {
+  for (const id of ids) if (id && !BUDDIES.includes(id)) BUDDIES.push(String(id).toLowerCase());
+}
 const CHECKBOX = /^(\s*(?:[-*•]\s*)?)\[([ xX])\]\s*/;
 const PREFIX = /^\s*(?:[-*•]\s*)?(?:\[[ xX]\]\s*)?/;
 
@@ -90,7 +94,7 @@ function parseLine(line, now = Date.now()) {
   for (const [i, len] of cuts.sort((a, b) => b[0] - a[0])) text = text.slice(0, i) + ' ' + text.slice(i + len);
 
   let buddy = '';
-  text = text.replace(/#(\w+)/g, (all, w) => {
+  text = text.replace(/#([\w-]+)/g, (all, w) => {
     if (!BUDDIES.includes(w.toLowerCase())) return all;
     buddy = w.toLowerCase();
     return ' ';
@@ -143,4 +147,4 @@ function parseNote(note, prev = [], now = Date.now()) {
   return out;
 }
 
-module.exports = { parseLine, parseNote, keyOf, CHECKBOX, BUDDIES };
+module.exports = { parseLine, parseNote, keyOf, CHECKBOX, BUDDIES, registerBuddyIds };

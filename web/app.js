@@ -8,7 +8,7 @@ const ROUTES = [
   ['devices', 'Devices', 'devices'],
   ['account', 'Account', 'account'],
 ];
-const TAGS = { none: '', red: '#ff3b30', orange: '#ff9500', yellow: '#ffcc00', green: '#34c759', blue: '#007aff', purple: '#af52de' };
+const TAGS = { none: '', cobalt: '#2b59ff', lime: '#c6ff34', white: '#f3f5f9', red: '#ff5a5a' };
 const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const PREFIX = /^\s*(?:[-*•]\s*)?(?:\[[ xX]\]\s*)?/;
 
@@ -283,7 +283,7 @@ async function viewBuddies() {
   const show = async (k) => {
     focus = k;
     const item = catalog.items.find((i) => i.id === k);
-    $('#bName').textContent = `${item.name} the ${item.kind}`;
+    $('#bName').textContent = item.image ? item.name : `${item.name} the ${item.kind}`;
     $('#bBlurb').textContent = item.blurb || '';
     $('#bAction').innerHTML = !item.owned
       ? catalog.store === 'closed' ? `<span class="pill-tag">${price(item.price)} · Coming soon</span>` : `<button class="btn" data-buy="${esc(k)}">Get for ${price(item.price)}</button>`

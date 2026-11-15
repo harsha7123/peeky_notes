@@ -3,17 +3,18 @@ import { createStage, BUDDIES, registerBuddies } from './buddies.js';
 const $ = (id) => document.getElementById(id);
 const canvas = $('stage');
 const stage = createStage(canvas);
-const OFF = 2.1, SPOT = 0; // x positions: offscreen right, standing spot
-const HALF_W = 1.26;       // half the visible world width at the buddy's depth
-stage.mover.position.x = OFF;
+// People and custom models stand tall on the taskbar; the built-in toys stay small.
+stage.setFraming({ tall: 0.92, toy: 0.5 });
+const SPOT = 0;
+const offscreen = () => stage.halfWidth + 1.2;
 
 const queue = [];
-const avatars = {};
 let cur = null, busy = false, nags = [];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const clock = (ms) => new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 function tween(ms, fn) {
   return new Promise((done) => {
@@ -30,7 +31,8 @@ function tween(ms, fn) {
 async function walk(to, ms) {
   const from = stage.mover.position.x;
   stage.setMode('walk');
-  stage.mover.rotation.y = to < from ? -0.9 : 0.9;
+  // Flat picture buddies stay facing you; 3D ones turn toward where they're going.
+  stage.mover.rotation.y = (to < from ? -1 : 1) * (stage.flat ? 0.12 : 0.9);
   await tween(ms, (k) => { stage.mover.position.x = from + (to - from) * k; });
   const ry = stage.mover.rotation.y;
   await tween(220, (k) => { stage.mover.rotation.y = ry * (1 - k); });
@@ -46,8 +48,8 @@ addEventListener('mousemove', (e) => {
 // The buddy watches the cursor anywhere on screen.
 peeky.onCursor(({ x, y }) => {
   const r = canvas.getBoundingClientRect();
-  const headX = r.left + r.width / 2 + (stage.mover.position.x / HALF_W) * (r.width / 2);
-  const headY = r.top + r.height * 0.32;
+  const headX = r.left + r.width / 2 + (stage.mover.position.x / stage.halfWidth) * (r.width / 2);
+  const headY = r.top + r.height * 0.25;
   stage.lookAt((x - headX) / 350, (headY - y) / 300);
 });
 
@@ -87,14 +89,26 @@ function chime(notes = [1046.5, 1568]) {
   } catch {}
 }
 
-async function avatar(key) {
-  if (!avatars[key]) {
-    const c = document.createElement('canvas');
-    const s = createStage(c, { size: [64, 64], distance: 3.4, target: 1.35 });
-    avatars[key] = await s.snapshot(key);
-    s.dispose();
+// What the card says and which replies it offers, per kind of reminder.
+function cardFor(p, b) {
+  const tasks = [['yes', 'Done', 'done'], ['', '5 min', 'snooze', 5], ['', '15 min', 'snooze', 15]];
+  switch (p.kind) {
+    case 'test':
+      return { tag: 'Preview', title: `Hi, I'm ${b.name}`, body: `When something is due I'll walk in right here — like: ${p.text}.`,
+        say: `Hi! I'm ${b.name}. When something is due, I'll walk in right here.`, actions: [['yes', 'Nice', 'dismiss']] };
+    case 'nudge':
+      return { tag: p.tag, title: p.text, body: p.body || '', say: p.text, actions: [['yes', 'Yes', 'done'], ['', 'Later', 'snooze', 10]],
+        doneLine: pick(['Nice.', 'Good call.', 'Proud of you.']) };
+    case 'focus':
+      return { tag: 'Focus', title: 'Focus session complete', body: `${p.minutes} minutes of deep work. Take a short break.`,
+        say: 'Focus session complete. Take a short break.', actions: [['yes', 'Take a break', 'done'], ['', 'Go again', 'again']],
+        doneLine: 'Enjoy the break.' };
+    case 'routine':
+      return { tag: 'Routine', title: cap(p.text), body: `${b.hello} It's time.`, note: 'From your daily routine', say: `${b.hello} It's time to ${p.text}!`, actions: tasks };
+    default:
+      return { tag: 'Reminder', title: cap(p.text), body: `${b.hello} It's time.`, note: p.noteTitle ? `From “${p.noteTitle}”` : '',
+        say: `${b.hello} It's time to ${p.text}!`, actions: tasks };
   }
-  return avatars[key];
 }
 
 function fill({ title, body = '', note = '' }) {
@@ -106,12 +120,12 @@ function fill({ title, body = '', note = '' }) {
 const renderQueue = () => { $('more').textContent = queue.length ? `${queue.length} more after this` : ''; };
 
 function confetti() {
-  const colors = ['#ff3b30', '#ff9f0a', '#ffcc00', '#34c759', '#007aff', '#af52de'];
-  for (let i = 0; i < 28; i++) {
+  const colors = ['#c6ff34', '#2b59ff', '#f3f5f9'];
+  for (let i = 0; i < 30; i++) {
     const el = document.createElement('i');
     el.className = 'bit';
-    const a = Math.random() * Math.PI * 2, d = 50 + Math.random() * 90;
-    el.style.cssText = `background:${pick(colors)};--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d - 40}px`;
+    const a = Math.random() * Math.PI * 2, d = 60 + Math.random() * 110;
+    el.style.cssText = `background:${pick(colors)};--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d - 50}px`;
     $('fx').appendChild(el);
     setTimeout(() => el.remove(), 1200);
   }
@@ -132,8 +146,9 @@ function clearNags() {
   nags = [];
 }
 
-// If ignored, the buddy gets more insistent.
+// If a task is ignored, the buddy gets more insistent. Gentle nudges never nag.
 function scheduleNags(b) {
+  if (cur.kind === 'nudge' || cur.kind === 'test' || cur.kind === 'focus') return;
   const lines = [
     [45e3, `Psst… still waiting on you to ${cur.text}.`],
     [120e3, `Hey! ${cur.text}! Don't make me come back.`],
@@ -163,21 +178,19 @@ async function next() {
   const key = BUDDIES[cur.buddy] ? cur.buddy : 'robot';
   const b = BUDDIES[key];
   await stage.setBuddy(key);
-  stage.mover.position.x = OFF;
+  stage.mover.position.x = offscreen();
   chime();
-  await walk(SPOT, 1100);
+  await walk(SPOT, 1200);
   stage.setMode('wave');
 
-  avatar(key).then((src) => { $('avatar').src = src; });
-  $('app').textContent = `${b.name} · Peeky`;
-  $('when').textContent = cur.test ? 'Preview' : clock(cur.due);
-  if (cur.test) {
-    fill({ title: `Hi, I'm ${b.name}`, body: `When a to-do in your notes is due, I'll walk in right here — for example: ${cur.text}.` });
-    speak(`Hi! I'm ${b.name}. When a to-do is due, I'll pop up right here and remind you.`, b.voice);
-  } else {
-    fill({ title: cur.text.charAt(0).toUpperCase() + cur.text.slice(1), body: `${b.hello} It's time.`, note: cur.noteTitle ? `From “${cur.noteTitle}”` : '' });
-    speak(`${b.hello} It's time to ${cur.text}!`, b.voice);
-  }
+  const c = cardFor(cur, b);
+  cur.card = c;
+  $('who').textContent = b.name;
+  $('tag').textContent = c.tag;
+  $('when').textContent = cur.kind === 'test' ? '' : clock(cur.due);
+  fill(c);
+  $('actions').innerHTML = c.actions.map(([cls, label, act, min]) => `<button class="${cls}" data-act="${act}" data-min="${min || 0}">${label}</button>`).join('');
+  speak(c.say, b.voice);
   $('card').classList.remove('hidden', 'out', 'nudge');
   scheduleNags(b);
 }
@@ -187,21 +200,27 @@ async function act(action, minutes) {
   busy = true;
   clearNags();
   const b = BUDDIES[stage.buddy];
-  if (!cur.test && action !== 'dismiss') peeky.reminder(cur.id, action, minutes);
+  if (cur.kind !== 'test' && ['done', 'snooze', 'again'].includes(action)) peeky.reminder(cur.id, action, minutes);
   if (action === 'done') {
     stage.setMode('happy');
     confetti();
     chime([1318.5, 1568, 2093]);
-    const line = pick(['Nice work!', 'Nailed it!', 'You did it!', 'Look at you go!']);
-    fill({ title: line, body: 'Checked off in your note.' });
+    const line = cur.card.doneLine || pick(['Nice work!', 'Nailed it!', 'You did it!', 'Look at you go!']);
+    fill({ title: line, body: cur.kind === 'reminder' ? 'Checked off in your note.' : '' });
+    $('actions').innerHTML = '';
     speak(line, b.voice);
-    await sleep(1600);
+    await sleep(1500);
   } else if (action === 'snooze') {
     stage.setMode('sleep');
     zzz();
-    fill({ title: `See you in ${minutes} minutes`, body: "I'll take a quick nap and come back." });
+    fill({ title: `See you in ${minutes} minutes`, body: "I'll check back with you." });
+    $('actions').innerHTML = '';
     speak(`Okay. Back in ${minutes} minutes.`, b.voice);
-    await sleep(1600);
+    await sleep(1500);
+  } else if (action === 'again') {
+    fill({ title: 'Another round. Go!', body: `${cur.minutes} more minutes of focus.` });
+    $('actions').innerHTML = '';
+    await sleep(1200);
   } else {
     speechSynthesis.cancel();
   }
@@ -209,7 +228,7 @@ async function act(action, minutes) {
   stage.setTalking(false);
   await sleep(200);
   $('card').classList.add('hidden');
-  await walk(OFF, 900);
+  await walk(offscreen(), 950);
   busy = false;
   next();
 }

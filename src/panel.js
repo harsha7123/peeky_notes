@@ -2,11 +2,19 @@ import { createStage, BUDDIES, registerBuddies } from './buddies.js';
 
 const $ = (s) => document.querySelector(s);
 // Apple system colors, used only as small tag dots.
-const TAGS = { none: '', red: '#ff3b30', orange: '#ff9500', yellow: '#ffcc00', green: '#34c759', blue: '#007aff', purple: '#af52de' };
+const TAGS = { none: '', cobalt: '#2b59ff', lime: '#c6ff34', white: '#f3f5f9', red: '#ff5a5a' };
 const CHECKBOX = /^\s*(?:[-*•]\s*)?\[([ xX])\]/;
 const PREFIX = /^\s*(?:[-*•]\s*)?(?:\[[ xX]\]\s*)?/;
 const QUICK = [['To-do', 'todo'], ['In 15 min', ' in 15 min'], ['In 1 hour', ' in 1 hour'], ['5 PM', ' at 5pm'], ['Tonight', ' tonight'], ['Tomorrow', ' tomorrow 9am']];
-const HEADINGS = { notes: 'Notes', edit: 'Notes', agenda: 'Reminders', buddy: 'Buddy', signin: 'Peeky' };
+const HEADINGS = { notes: 'Notes', edit: 'Notes', agenda: 'Today', buddy: 'Buddy', signin: 'Peeky' };
+const NUDGE_INFO = {
+  water: ['Water break', 'Drink a glass of water'],
+  stretch: ['Stretch', 'Stand up and move for a minute'],
+  eyes: ['Eye break', 'Look far away for 20 seconds'],
+  posture: ['Posture check', 'Sit tall, shoulders back'],
+};
+const NUDGE_EVERY = [20, 30, 45, 60, 90, 120];
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 
 let S = { notes: [], settings: {} };
 let view = 'notes', editingId = null, search = '', dirty = false, saveTimer = 0, stage = null;
@@ -116,6 +124,7 @@ function show(v) {
   for (const s of document.querySelectorAll('.view')) s.classList.toggle('hidden', s.id !== `view-${v}`);
   for (const b of document.querySelectorAll('.seg button')) b.classList.toggle('active', b.dataset.view === (v === 'edit' ? 'notes' : v));
   $('#heading').textContent = HEADINGS[v];
+  $('#quickWrap').classList.toggle('hidden', v !== 'notes' && v !== 'agenda');
   stage?.setPaused(v !== 'buddy');
   render();
 }
@@ -133,6 +142,87 @@ function render() {
   else if (view === 'agenda') renderAgenda();
   else if (view === 'buddy') renderBuddy();
 }
+
+// ---------- quick add ----------
+
+$('#quickForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = $('#quickInput');
+  if (!input.value.trim()) return;
+  const r = await peeky.quickAdd(input.value);
+  input.value = '';
+  $('#quickResult').innerHTML = r?.due
+    ? `Got it — <b>${esc(r.text)}</b>, ${fmtWhen(r.due)}.`
+    : `Added to Inbox. Add a time like “at 5pm” or “in 20 min” to be reminded.`;
+  clearTimeout(quickTimer);
+  quickTimer = setTimeout(() => { $('#quickResult').textContent = ''; }, 6000);
+});
+let quickTimer = 0;
+
+// ---------- today: progress, streak, focus, pause ----------
+
+function streak() {
+  const days = S.stats?.days || {};
+  const d = new Date();
+  if (!days[dayKey(d)]) d.setDate(d.getDate() - 1); // today doesn't break the streak until it's over
+  let n = 0;
+  while (days[dayKey(d)]) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+const clockLeft = (ms) => {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+};
+
+function renderToday() {
+  const now = Date.now();
+  const done = S.stats?.days?.[dayKey()] || 0;
+  const left = allReminders().filter(({ r }) => !r.done && dayDiff(r.due, now) <= 0).length
+    + routineToday().filter((x) => x.status !== 'done').length;
+  const pct = done + left ? Math.round((done / (done + left)) * 100) : 0;
+  const st = streak();
+  const focus = S.focus && S.focus.until > now ? S.focus : null;
+  const paused = S.dndUntil > now;
+  $('#todayBox').innerHTML = `
+    <div class="today">
+      <div class="stat hot"><div class="n">${done}<small>done</small></div><div class="l">${left ? `${left} left today` : 'Nothing left today'}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></div>
+      <div class="stat"><div class="n">${st}<small>day${st === 1 ? '' : 's'}</small></div><div class="l">${st ? 'Streak — keep it going' : 'Finish one thing to start a streak'}</div></div>
+    </div>
+    ${focus
+      ? `<div class="toolrow live"><div class="grow"><div class="tt" id="focusClock">${clockLeft(focus.until - now)}</div><div class="ts">Focus session · nudges are on hold</div></div><button class="chip-btn stop" data-tool="focus-stop">Stop</button></div>`
+      : `<div class="toolrow"><div class="grow"><div class="tt">Focus session</div><div class="ts">Your buddy tells you when time's up</div></div><button class="chip-btn" data-tool="focus-25">25 min</button><button class="chip-btn" data-tool="focus-50">50 min</button></div>`}
+    ${paused
+      ? `<div class="toolrow live"><div class="grow"><div class="tt">Reminders paused</div><div class="ts">Until ${timeOf(S.dndUntil)}</div></div><button class="chip-btn" data-tool="dnd-0">Resume</button></div>`
+      : `<div class="toolrow"><div class="grow"><div class="tt">Pause reminders</div><div class="ts">For a meeting, a film or a nap</div></div><button class="chip-btn" data-tool="dnd-30">30 min</button><button class="chip-btn" data-tool="dnd-60">1 hr</button></div>`}`;
+}
+$('#todayBox').addEventListener('click', (e) => {
+  const t = e.target.closest('[data-tool]')?.dataset.tool;
+  if (!t) return;
+  if (t === 'focus-stop') peeky.focusStop();
+  else if (t.startsWith('focus-')) peeky.focusStart(+t.slice(6));
+  else if (t.startsWith('dnd-')) peeky.setDnd(+t.slice(4));
+});
+setInterval(() => {
+  const el = $('#focusClock');
+  if (el && S.focus) el.textContent = clockLeft(S.focus.until - Date.now());
+}, 1000);
+
+// ---------- healthy nudges ----------
+
+function renderNudges() {
+  $('#nudges').innerHTML = Object.entries(NUDGE_INFO).map(([k, [title, sub]]) => {
+    const cfg = S.nudges?.[k] || { on: false, every: 60 };
+    return `<div class="row nudge"><div class="nl">${title}<small>${sub}</small></div>
+      <select data-nudge="${k}" title="How often">${NUDGE_EVERY.map((m) => `<option value="${m}" ${m === cfg.every ? 'selected' : ''}>${m < 60 ? `${m} min` : m === 60 ? '1 hr' : `${m / 60} hr`}</option>`).join('')}</select>
+      <input type="checkbox" class="switch" data-nudge="${k}" ${cfg.on ? 'checked' : ''}></div>`;
+  }).join('');
+}
+$('#nudges').addEventListener('change', (e) => {
+  const k = e.target.dataset.nudge;
+  if (!k) return;
+  peeky.setNudge(k, e.target.type === 'checkbox' ? { on: e.target.checked } : { every: +e.target.value });
+});
 
 // ---------- sign in (device flow: the browser approves this computer) ----------
 
@@ -353,6 +443,7 @@ function renderAgenda() {
     ['Later', items.filter((x) => open(x) && dayDiff(x.r.due, now) > 1)],
     ['Completed', items.filter(({ r }) => r.done).slice(-8).reverse()],
   ].filter(([, list]) => list.length);
+  renderToday();
   const routine = routineToday();
   const routineHtml = S.routine?.url
     ? `<div class="group-label">Daily Routine<span class="n">${routine.length}</span></div><div class="list">${routine.map(routineRow).join('') || '<div class="hint">Nothing on your sheet for today.</div>'}</div>`
@@ -388,6 +479,7 @@ function renderBuddy() {
   $('#optChime').checked = !!S.settings.chime;
   $('#optLogin').checked = !!S.settings.openAtLogin;
   $('#acctEmail').textContent = S.account ? `Signed in as ${S.account.user.email}` : '';
+  if (document.activeElement?.tagName !== 'SELECT') renderNudges();
 }
 
 const hop = () => { stage.setMode('happy'); setTimeout(() => stage.setMode('wave'), 1100); };

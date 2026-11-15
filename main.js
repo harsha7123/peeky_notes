@@ -2,15 +2,23 @@ const { app, BrowserWindow, ipcMain, screen, globalShortcut, Tray, Menu, nativeI
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { parseNote, keyOf, CHECKBOX } = require('./src/parse');
+const { parseNote, keyOf, CHECKBOX, registerBuddyIds } = require('./src/parse');
 
 // Packaged builds get the production address baked into package.json by `npm run dist`.
 const SERVER = (process.env.PEEKY_SERVER || require('./package.json').peeky?.server || 'http://localhost:8787').replace(/\/$/, '');
 const PANEL_W = 360, PILL_W = 12, PILL_H = 96;
-const BUDDY_W = 470, BUDDY_H = 240;
+const BUDDY_W = 420, BUDDY_H = 520;
 const PRELOAD = path.join(__dirname, 'src', 'preload.js');
 const FREE_BUDDIES = ['robot', 'cat'];
 const DEFAULT_SETTINGS = { buddy: 'robot', voice: true, chime: true, openAtLogin: false };
+// Gentle recurring nudges. `every` is the default interval in minutes.
+const NUDGES = {
+  water: { tag: 'Water break', text: 'Time for a water break.', body: 'A glass of water now keeps the afternoon headache away.', every: 60 },
+  stretch: { tag: 'Stretch', text: 'Stand up and stretch.', body: 'Roll your shoulders and reach for the ceiling for a minute.', every: 90 },
+  eyes: { tag: 'Eye break', text: 'Rest your eyes.', body: 'Look at something far away for 20 seconds.', every: 20 },
+  posture: { tag: 'Posture', text: 'Check your posture.', body: 'Shoulders back, feet flat, screen at eye level.', every: 45 },
+};
+const defaultNudges = () => Object.fromEntries(Object.entries(NUDGES).map(([k, n]) => [k, { on: false, every: n.every }]));
 const WELCOME = `Welcome to Peeky 👋
 Hover the small handle on the right edge of your screen to peek. Ctrl+Shift+Space toggles me.
 
@@ -33,6 +41,7 @@ function emptyState() {
     notes: [], settings: { ...DEFAULT_SETTINGS }, account: null, online: true,
     owned: [...FREE_BUDDIES], catalog: [], routine: { url: null, items: [] },
     routineLog: {}, timers: [], dirty: [], deleted: [], lastPull: 0, server: SERVER,
+    nudges: defaultNudges(), nudgeNext: {}, focus: null, dndUntil: 0, stats: { days: {} },
   };
 }
 
@@ -48,6 +57,9 @@ function load() {
   let saved = {};
   try { saved = JSON.parse(fs.readFileSync(file('peeky-data.json'), 'utf8')); } catch {}
   state = { ...emptyState(), ...saved, settings: { ...DEFAULT_SETTINGS, ...saved.settings }, server: SERVER, online: true };
+  state.nudges = { ...defaultNudges(), ...saved.nudges };
+  state.stats = { days: {}, ...saved.stats };
+  registerBuddyIds((state.catalog || []).map((i) => i.id));
   // Reminders that went off more than 6h ago while the app was closed count as missed, not replayed.
   const cutoff = Date.now() - 6 * 36e5;
   for (const n of state.notes) for (const r of n.reminders) if (!r.fired && r.due < cutoff) r.fired = true;
@@ -97,6 +109,7 @@ async function refreshAccount() {
   state.account = { user: me.user, sheet: me.sheet, testMode: cat.testMode };
   state.owned = me.owned;
   state.catalog = cat.items;
+  registerBuddyIds(cat.items.map((i) => i.id));
   state.routine = { url: routine.url, items: routine.items || [], error: routine.error, synced: routine.synced };
   Object.assign(state.settings, me.settings);
 }
@@ -195,7 +208,7 @@ async function startSignIn() {
 }
 
 async function finishSignIn() {
-  state = { ...emptyState(), settings: { ...state.settings } };
+  state = { ...emptyState(), settings: { ...state.settings }, nudges: state.nudges };
   await sync({ full: true });
   if (state.account && !state.notes.length) {
     const n = makeNote(WELCOME);
@@ -241,6 +254,14 @@ function setChecked(n, r, checked) {
   markDirty(n.id);
 }
 
+// Every completed thing counts toward today's total (and the streak shown in the panel).
+function countDone() {
+  const k = dayKey();
+  state.stats.days[k] = (state.stats.days[k] || 0) + 1;
+  const keep = Object.keys(state.stats.days).slice(-120);
+  state.stats.days = Object.fromEntries(keep.map((d) => [d, state.stats.days[d]]));
+}
+
 // A buddy the account doesn't own falls back to the default (or the free robot).
 function pickBuddy(...wanted) {
   for (const k of wanted) if (k && state.owned.includes(k)) return k;
@@ -281,7 +302,7 @@ function createPanel() {
 const common = () => ({ settings: state.settings, catalog: state.catalog, server: SERVER });
 
 function payload(n, r) {
-  return { id: r.id, text: r.text, due: r.due, noteTitle: titleOf(n), buddy: pickBuddy(r.buddy, n.buddy), ...common() };
+  return { id: r.id, kind: 'reminder', text: r.text, due: r.due, noteTitle: titleOf(n), buddy: pickBuddy(r.buddy, n.buddy), ...common() };
 }
 
 function showBuddy(p) {
@@ -330,6 +351,8 @@ function createBuddy() {
 function tick() {
   if (!state.account) return;
   const now = Date.now();
+  // Paused: hold everything. Note reminders fire as soon as the pause ends.
+  if (state.dndUntil > now) return;
   let changed = false;
 
   for (const n of state.notes) for (const r of n.reminders) {
@@ -351,14 +374,36 @@ function tick() {
     if (now < due || now - due > 30 * 6e4 || state.routineLog[key]) continue;
     state.routineLog[key] = 'shown';
     changed = true;
-    showBuddy({ id: `routine:${key}`, text: it.task, due, noteTitle: 'Daily routine', buddy: pickBuddy(it.buddy), ...common() });
+    showBuddy({ id: `routine:${key}`, kind: 'routine', text: it.task, due, noteTitle: 'Daily routine', buddy: pickBuddy(it.buddy), ...common() });
+  }
+
+  // Focus session finished.
+  if (state.focus && now >= state.focus.until) {
+    const minutes = state.focus.minutes;
+    state.focus = null;
+    changed = true;
+    countDone();
+    showBuddy({ id: 'focus', kind: 'focus', minutes, text: 'take a break', due: now, buddy: pickBuddy(), ...common() });
+  }
+
+  // Healthy nudges — held back while a focus session is running.
+  if (!state.focus) {
+    for (const [key, cfg] of Object.entries(state.nudges)) {
+      if (!cfg.on || !NUDGES[key]) continue;
+      if (!state.nudgeNext[key]) { state.nudgeNext[key] = now + cfg.every * 6e4; changed = true; continue; }
+      if (now < state.nudgeNext[key]) continue;
+      state.nudgeNext[key] = now + cfg.every * 6e4;
+      changed = true;
+      const n = NUDGES[key];
+      showBuddy({ id: `nudge:${key}`, kind: 'nudge', tag: n.tag, text: n.text, body: n.body, due: now, buddy: pickBuddy(), ...common() });
+    }
   }
 
   // Snoozed routine items.
   for (const t of state.timers.filter((x) => x.due <= now)) {
     state.timers = state.timers.filter((x) => x !== t);
     changed = true;
-    showBuddy({ ...t.payload, due: now, ...common() });
+    showBuddy({ kind: 'routine', ...t.payload, due: now, ...common() });
   }
 
   if (changed) { save(); broadcast(); }
@@ -392,7 +437,7 @@ function createTray() {
   tray.on('click', () => panel.webContents.send('panel', 'toggle'));
 }
 
-const testPayload = (buddy) => ({ id: 'test', test: true, text: 'drink a glass of water', due: Date.now(), noteTitle: 'Preview', buddy: pickBuddy(buddy), ...common() });
+const testPayload = (buddy) => ({ id: 'test', kind: 'test', test: true, text: 'drink a glass of water', due: Date.now(), noteTitle: 'Preview', buddy: pickBuddy(buddy), ...common() });
 
 // ---------- IPC ----------
 
@@ -453,9 +498,22 @@ ipcMain.handle('settings:set', async (_e, patch) => {
   if (Object.keys(remote).length) await api('/api/settings', { method: 'PATCH', body: remote }).catch(() => {});
 });
 ipcMain.handle('reminder:action', (_e, id, action, minutes) => {
+  if (id.startsWith('nudge:')) {
+    const key = id.slice(6);
+    if (action === 'done') countDone();
+    else if (action === 'snooze') state.nudgeNext[key] = Date.now() + (minutes || 10) * 6e4;
+    save(); broadcast();
+    return;
+  }
+  if (id === 'focus') {
+    const m = state.lastFocus || 25;
+    if (action === 'again') state.focus = { minutes: m, until: Date.now() + m * 6e4 };
+    save(); broadcast();
+    return;
+  }
   if (id.startsWith('routine:')) {
     const key = id.slice(8);
-    if (action === 'done') state.routineLog[key] = 'done';
+    if (action === 'done') { state.routineLog[key] = 'done'; countDone(); }
     else if (action === 'undone') state.routineLog[key] = 'shown';
     else if (action === 'snooze') {
       const [rid] = key.split('@');
@@ -467,8 +525,8 @@ ipcMain.handle('reminder:action', (_e, id, action, minutes) => {
   }
   const [n, r] = findReminder(id);
   if (!r) return;
-  if (action === 'test') return showBuddy({ ...payload(n, r), test: true });
-  if (action === 'done') setChecked(n, r, true);
+  if (action === 'test') return showBuddy({ ...payload(n, r), kind: 'test', test: true });
+  if (action === 'done') { if (!r.done) countDone(); setChecked(n, r, true); }
   else if (action === 'undone') setChecked(n, r, false);
   else if (action === 'snooze') {
     r.due = Date.now() + (minutes || 10) * 6e4;
@@ -479,6 +537,48 @@ ipcMain.handle('reminder:action', (_e, id, action, minutes) => {
   save(); broadcast();
 });
 ipcMain.handle('buddy:test', (_e, buddy) => showBuddy(testPayload(buddy)));
+
+// Quick add: "call mom at 5pm" becomes a checkbox line in the Inbox note (and a reminder if it has a time).
+ipcMain.handle('quick:add', (_e, text) => {
+  const line = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  if (!line) return null;
+  let inbox = state.notes.find((n) => n.id === 'inbox');
+  if (!inbox) {
+    inbox = { id: 'inbox', text: 'Inbox', color: 'none', buddy: '', pinned: true, created: Date.now(), updated: Date.now(), reminders: [] };
+    state.notes.unshift(inbox);
+  }
+  inbox.text = `${inbox.text.replace(/\s+$/, '')}\n[ ] ${line}`;
+  inbox.updated = Date.now();
+  inbox.reminders = parseNote(inbox, inbox.reminders);
+  markDirty(inbox.id);
+  save(); broadcast();
+  const last = inbox.text.split('\n').length - 1;
+  const added = inbox.reminders.find((x) => x.line === last);
+  return added ? { text: added.text, due: added.due } : { text: line, due: null };
+});
+
+ipcMain.handle('nudge:set', (_e, key, patch) => {
+  if (!NUDGES[key]) return;
+  const cfg = state.nudges[key];
+  if (typeof patch.on === 'boolean') cfg.on = patch.on;
+  if (patch.every) cfg.every = Math.min(240, Math.max(5, +patch.every || NUDGES[key].every));
+  state.nudgeNext[key] = cfg.on ? Date.now() + cfg.every * 6e4 : 0;
+  save(); broadcast();
+});
+
+ipcMain.handle('focus:start', (_e, minutes) => {
+  const m = Math.min(180, Math.max(1, +minutes || 25));
+  state.focus = { minutes: m, until: Date.now() + m * 6e4 };
+  state.lastFocus = m;
+  save(); broadcast();
+});
+ipcMain.handle('focus:stop', () => { state.focus = null; save(); broadcast(); });
+
+// Pause every reminder for a while (0 = resume now).
+ipcMain.handle('dnd:set', (_e, minutes) => {
+  state.dndUntil = minutes ? Date.now() + minutes * 6e4 : 0;
+  save(); broadcast();
+});
 ipcMain.on('buddy:ready', () => { buddyReady = true; flushBuddy(); });
 ipcMain.on('buddy:closed', () => { if (!buddyQueue.length) buddyWin?.close(); });
 ipcMain.on('buddy:ignore', (e, ignore) => {
@@ -505,6 +605,11 @@ else {
     screen.on('display-metrics-changed', () => panel.webContents.send('panel', 'reflow'));
     sync({ full: true });
     if (!token && process.env.PEEKY_DEBUG_SIGNIN) startSignIn();
+    // PEEKY_DEBUG_VIEW=agenda|buddy|notes (development only): open the panel on that tab, for screenshots.
+    if (process.env.PEEKY_DEBUG_VIEW) setTimeout(() => {
+      panel.webContents.send('panel', 'toggle');
+      panel.webContents.executeJavaScript(`setTimeout(() => document.querySelector('[data-view="${process.env.PEEKY_DEBUG_VIEW.replace(/\W/g, '')}"]')?.click(), 700)`);
+    }, 3500);
     setInterval(tick, 2000);
     setInterval(() => sync(), 60e3);                 // notes
     setInterval(() => sync({ full: true }), 5 * 60e3); // purchases, settings, routine

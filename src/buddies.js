@@ -242,14 +242,12 @@ export const BUDDIES = {
 
 // Adds catalog entries whose `model` is a .glb URL (built-in ones are already defined above).
 export function registerBuddies(items, baseUrl = '') {
+  const abs = (u) => (/^https?:/.test(u) ? u : baseUrl + u);
   for (const it of items) {
-    if (!it.model || it.model.startsWith('builtin:')) continue;
-    BUDDIES[it.id] = {
-      name: it.name, kind: it.kind || 'Buddy',
-      voice: it.voice || { pitch: 1, rate: 1 },
-      hello: it.hello || 'Hey! Time for your next thing.',
-      model: /^https?:/.test(it.model) ? it.model : baseUrl + it.model,
-    };
+    const common = { name: it.name, kind: it.kind || 'Buddy', voice: it.voice || { pitch: 1, rate: 1 }, hello: it.hello || 'Hey! Time for your next thing.' };
+    // A cut-out buddy: one transparent picture of a standing character (see server/models/README.md).
+    if (it.image) BUDDIES[it.id] = { ...common, image: abs(it.image), hip: it.hip, split: it.split, tall: true, flat: true };
+    else if (it.model && !it.model.startsWith('builtin:')) BUDDIES[it.id] = { ...common, model: abs(it.model), tall: it.tall !== false };
   }
 }
 
@@ -304,6 +302,55 @@ function playClip(rig, mode) {
   rig.action = next;
 }
 
+// ---------- cut-out buddies: a realistic character from a single transparent picture ----------
+
+const textureLoader = new THREE.TextureLoader();
+const textureCache = new Map();
+const loadTexture = (url) => {
+  if (!textureCache.has(url)) textureCache.set(url, textureLoader.loadAsync(url));
+  return textureCache.get(url);
+};
+
+// The picture is cut into a torso and two legs (at `hip`, a 0–1 height from the feet, and `split`, the 0–1
+// horizontal gap between the legs). The legs hinge at the hip, so the character walks, hops and breathes.
+async function buildCutout({ image, hip = 0.47, split = 0.5 }) {
+  const tex = await loadTexture(image);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const H = 2, W = H * (tex.image.width / tex.image.height);
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false, alphaTest: 0.03, side: THREE.DoubleSide });
+  const piece = (u0, u1, v0, v1) => {
+    const g = new THREE.PlaneGeometry((u1 - u0) * W, (v1 - v0) * H);
+    g.setAttribute('uv', new THREE.Float32BufferAttribute([u0, v1, u1, v1, u0, v0, u1, v0], 2));
+    return new THREE.Mesh(g, mat);
+  };
+  const root = new THREE.Group();
+  const seam = 0.012; // torso overlaps the legs slightly so no gap shows mid-stride
+  const torso = piece(0, 1, hip - seam, 1);
+  torso.position.set(0, ((hip - seam + 1) / 2) * H, 0.002);
+  root.add(torso);
+  const leg = (u0, u1) => {
+    const pivot = new THREE.Group();
+    pivot.position.set(((u0 + u1) / 2 - 0.5) * W, hip * H, 0);
+    const m = piece(u0, u1, 0, hip);
+    m.position.y = (-hip * H) / 2;
+    pivot.add(m);
+    root.add(pivot);
+    return pivot;
+  };
+  const legL = leg(0, split), legR = leg(split, 1);
+  const dummy = () => new THREE.Object3D();
+  return {
+    root, head: dummy(), armL: dummy(), armR: dummy(), eyes: [], mouth: dummy(), eyeRange: 0, generic: true, flat: true,
+    extra(t, mode) {
+      const stride = mode === 'walk' ? Math.sin(t * 10) * 0.3 : mode === 'nag' ? Math.sin(t * 14) * 0.12 : 0;
+      damp(legL.rotation, 'z', stride, 0.35);
+      damp(legR.rotation, 'z', -stride, 0.35);
+      torso.scale.y = 1 + Math.sin(t * 1.7) * 0.006; // breathing
+      torso.rotation.z = mode === 'wave' ? Math.sin(t * 2.2) * 0.012 : 0;
+    },
+  };
+}
+
 const damp = (obj, prop, target, k = 0.18) => { obj[prop] += (target - obj[prop]) * k; };
 
 function softShadow() {
@@ -333,6 +380,15 @@ export function createStage(canvas, { distance = 6.4, size = null, target = 0.95
   const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 50);
   camera.position.set(0, 1.25, distance);
   camera.lookAt(0, target, 0);
+  // Optional auto-framing: the buddy (2 units tall) fills `frac` of the canvas height with its feet near the bottom edge.
+  let framing = null, visibleH = 2 * distance * Math.tan((14 * Math.PI) / 180);
+  const applyFraming = (frac) => {
+    visibleH = 2 / frac;
+    const d = visibleH / (2 * Math.tan((14 * Math.PI) / 180));
+    const mid = visibleH / 2 - visibleH * 0.05;
+    camera.position.set(0, mid + 0.25, d);
+    camera.lookAt(0, mid, 0);
+  };
   const key = new THREE.DirectionalLight(0xffffff, 1.6);
   key.position.set(2.5, 4, 4);
   scene.add(key);
@@ -390,7 +446,8 @@ export function createStage(canvas, { distance = 6.4, size = null, target = 0.95
     // Models with their own matching clip move themselves; otherwise we move them procedurally.
     if (rig.clipDriven) { y = 0; rz = 0; sy = 1; }
     // Custom models have no separate head, so the whole body turns toward the cursor.
-    if (rig.generic && mode !== 'happy') ry = tracking ? hy * 0.8 : 0;
+    if (rig.generic && mode !== 'happy') ry = tracking ? hy * (rig.flat ? 0.45 : 0.8) : 0;
+    if (rig.flat && mode === 'happy') ry = 0;
     root.position.y = y;
     root.rotation.z = rz;
     if (rig.generic && mode !== 'happy') damp(root.rotation, 'y', ry, 0.1);
@@ -436,14 +493,21 @@ export function createStage(canvas, { distance = 6.4, size = null, target = 0.95
       current = k;
       const ticket = ++loading;
       const meta = BUDDIES[k];
-      const next = meta.model ? await buildModel(meta.model).catch((e) => { console.warn('Buddy model failed to load', e); return BUDDIES.robot.build(); }) : meta.build();
+      const fallback = (e) => { console.warn('Buddy failed to load', e); return BUDDIES.robot.build(); };
+      const next = meta.image ? await buildCutout(meta).catch(fallback) : meta.model ? await buildModel(meta.model).catch(fallback) : meta.build();
       if (ticket !== loading) return;
       if (rig) mover.remove(rig.root);
       rig = next;
       rig.mouthBase = rig.mouth.scale.y;
       mover.add(rig.root);
       playClip(rig, mode);
+      if (framing) applyFraming(meta.tall ? framing.tall : framing.toy);
     },
+    // Auto-frame every buddy: `tall` characters (people, custom models) and `toy` built-ins get different sizes.
+    setFraming(f) { framing = f; },
+    // Half the visible width at the buddy's depth, in world units — for walking on and off screen.
+    get halfWidth() { return (visibleH * camera.aspect) / 2; },
+    get flat() { return !!rig?.flat; },
     setMode(m) { mode = m; modeAt = clock.getElapsedTime(); if (rig) playClip(rig, m); },
     setTalking(b) { talking = b; },
     setPaused(b) { paused = b; },

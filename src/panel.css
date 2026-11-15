@@ -1,32 +1,24 @@
+/* Peeky palette: midnight black, electric cobalt, acid lime. Flat colors only — no gradients. */
 :root {
-  --bg: rgb(242, 242, 247);
-  --surface: #ffffff;
-  --text: #1d1d1f;
-  --sub: #86868b;
-  --hair: rgba(60, 60, 67, 0.16);
-  --fill: rgba(118, 118, 128, 0.12);
-  --fill-strong: rgba(118, 118, 128, 0.2);
-  --blue: #007aff;
-  --red: #ff3b30;
-  --seg-on: #ffffff;
-  --seg-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
-  --stage: linear-gradient(180deg, #fbfbfd, #ececf0);
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: rgb(28, 28, 30);
-    --surface: #2c2c2e;
-    --text: #f5f5f7;
-    --sub: #98989d;
-    --hair: rgba(84, 84, 88, 0.55);
-    --fill: rgba(118, 118, 128, 0.24);
-    --fill-strong: rgba(118, 118, 128, 0.36);
-    --blue: #0a84ff;
-    --red: #ff453a;
-    --seg-on: #636366;
-    --seg-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    --stage: linear-gradient(180deg, #3a3a3c, #2c2c2e);
-  }
+  --ink: #07080b;
+  --bg: #07080b;
+  --surface: #10131a;
+  --raise: #181c26;
+  --text: #f3f5f9;
+  --sub: #8b93a7;
+  --hair: rgba(255, 255, 255, 0.09);
+  --fill: rgba(255, 255, 255, 0.07);
+  --fill-strong: rgba(255, 255, 255, 0.14);
+  --cobalt: #2b59ff;
+  --cobalt-text: #7b98ff;
+  --lime: #c6ff34;
+  --lime-ink: #0c1200;
+  --blue: var(--cobalt-text);
+  --red: #ff5a5a;
+  --seg-on: var(--cobalt);
+  --seg-shadow: none;
+  --stage: #10131a;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -200,3 +192,79 @@ body.signed-out .seg, body.signed-out .bar-actions { display: none; }
 .offline::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #ff9500; }
 .routine-cta { color: var(--blue); }
 .routine-cta svg { width: 16px; height: 16px; }
+
+/* ================= midnight / cobalt / lime ================= */
+.sheet { border: 1px solid var(--hair); border-right: 0; box-shadow: none; }
+.handle { background: var(--cobalt); box-shadow: none; }
+.pill:hover .handle { background: var(--cobalt); }
+.badge { background: var(--lime); box-shadow: 0 0 0 1.5px var(--ink); }
+@keyframes ping { 50% { transform: translateX(-3px); background: var(--lime); } }
+.icon { color: var(--text); }
+#btnPin.on { color: var(--lime); background: var(--fill); }
+.seg { border-radius: 10px; padding: 3px; }
+.seg button { color: var(--sub); border-radius: 8px; }
+.seg button.active { color: #fff; }
+.search:focus-within, .quickadd:focus-within { box-shadow: inset 0 0 0 1.5px var(--cobalt); }
+.list, .buddy-card, #editor { border: 1px solid var(--hair); }
+.row-link, .link, .text-btn, .routine-cta { color: var(--cobalt-text); }
+.note-row .t { color: var(--text); }
+.pin-btn.on { color: var(--lime); }
+.circle:hover { box-shadow: inset 0 0 0 1.5px var(--lime); }
+.rem.done .circle { background: var(--lime); color: var(--lime-ink); }
+.rem.waiting .rem-meta .when { color: var(--lime); }
+.rem.waiting { box-shadow: inset 2px 0 0 var(--lime); }
+.switch:checked { background: var(--lime); }
+.switch:checked::after { background: var(--ink); }
+.buddy-card.on { box-shadow: 0 0 0 2px var(--lime); }
+.primary-btn { background: var(--cobalt); color: #fff; }
+.signin-mark { background: var(--lime); }
+.signin-mark span { background: var(--ink); }
+.stage-card { background: var(--surface); border: 1px solid var(--hair); }
+.tag.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--text); }
+.quick button:hover { background: var(--cobalt); color: #fff; }
+select { background: var(--raise); }
+code { color: var(--lime); }
+.offline::before { background: var(--lime); }
+
+/* quick add */
+.quickadd { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 6px 0 12px; border-radius: 12px; background: var(--surface);
+  border: 1px solid var(--hair); margin-bottom: 6px; }
+.quickadd svg { width: 16px; height: 16px; color: var(--lime); }
+.quickadd input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--text); font: inherit; font-size: 13.5px; }
+.quickadd input::placeholder, .search input::placeholder { color: var(--sub); }
+.quickadd button { height: 28px; padding: 0 12px; border-radius: 8px; background: var(--cobalt); color: #fff; font-weight: 600; font-size: 12px; }
+.quick-result { min-height: 18px; margin: 0 4px 10px; font-size: 12px; color: var(--sub); }
+.quick-result b { color: var(--lime); font-weight: 600; }
+
+/* today card */
+.today { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--hair); border-radius: 12px; padding: 10px 12px; }
+.stat .n { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.stat .n small { font-size: 12px; font-weight: 500; color: var(--sub); margin-left: 4px; }
+.stat .l { font-size: 11.5px; color: var(--sub); margin-top: 2px; }
+.stat.hot .n { color: var(--lime); }
+.bar-track { height: 4px; border-radius: 2px; background: var(--fill-strong); margin-top: 8px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--lime); border-radius: 2px; transition: width .4s cubic-bezier(.3, .7, .2, 1); }
+
+.toolrow { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--hair); border-radius: 12px; padding: 8px 10px 8px 12px; margin-bottom: 8px; }
+.toolrow .grow { flex: 1; min-width: 0; }
+.toolrow .tt { font-weight: 600; }
+.toolrow .ts { font-size: 11.5px; color: var(--sub); }
+.toolrow.live { border-color: var(--lime); }
+.toolrow.live .tt { color: var(--lime); font-variant-numeric: tabular-nums; }
+.chip-btn { height: 28px; padding: 0 11px; border-radius: 8px; background: var(--raise); font-size: 12px; font-weight: 600; color: var(--text); }
+.chip-btn:hover { background: var(--cobalt); color: #fff; }
+.chip-btn.stop { color: var(--red); }
+.chip-btn.stop:hover { background: var(--red); color: #fff; }
+
+/* nudges */
+.nudge .nl { flex: 1; min-width: 0; }
+.nudge .nl small { display: block; color: var(--sub); font-size: 11.5px; }
+.nudge select { padding: 3px 8px; font-size: 11.5px; }
+
+.quickwrap { margin: 0 16px; }
+
+/* Row tools only take space while the row is hovered, so titles get the full width. */
+.rem .mini { display: none; opacity: 1; }
+.rem:hover .mini { display: inline-flex; align-items: center; }
+.rem-text { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }

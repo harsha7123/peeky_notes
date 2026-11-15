@@ -35,10 +35,18 @@
     </header>
     <nav class="seg">
       <button data-view="notes" class="active">Notes</button>
-      <button data-view="agenda">Reminders</button>
+      <button data-view="agenda">Today</button>
       <button data-view="buddy">Buddy</button>
     </nav>
     <div id="offline" class="offline hidden">Offline — changes will sync when you're back online</div>
+    <div id="quickWrap" class="quickwrap hidden">
+      <form id="quickForm" class="quickadd">
+        <svg><use href="#i-clock"/></svg>
+        <input id="quickInput" placeholder="Remind me to… call mom at 5pm" autocomplete="off" spellcheck="false">
+        <button type="submit">Add</button>
+      </form>
+      <div id="quickResult" class="quick-result"></div>
+    </div>
 
     <section id="view-signin" class="view signin hidden">
       <div class="signin-mark"><span></span><span></span></div>
@@ -82,7 +90,7 @@ Add a time to any line and your buddy will remind you:
       <div id="detected"></div>
     </section>
 
-    <section id="view-agenda" class="view hidden"><div id="agenda"></div></section>
+    <section id="view-agenda" class="view hidden"><div id="todayBox"></div><div id="agenda"></div></section>
 
     <section id="view-buddy" class="view hidden">
       <div class="stage-card">
@@ -98,6 +106,8 @@ Add a time to any line and your buddy will remind you:
         <label class="row"><span>Play sound</span><input type="checkbox" id="optChime" class="switch"></label>
         <label class="row"><span>Open at login</span><input type="checkbox" id="optLogin" class="switch"></label>
       </div>
+      <div class="group-label">Healthy nudges</div>
+      <div id="nudges" class="list"></div>
       <div class="group-label">Writing reminders</div>
       <div class="list tips">
         <div class="row"><span>Time of day</span><code>at 5pm · 18:30</code></div>

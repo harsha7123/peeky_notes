@@ -1,12 +1,89 @@
 {
   "currency": "usd",
-  "bundle": { "id": "all", "name": "Every Buddy", "price": 499, "blurb": "Unlock every buddy, including the ones we add later." },
+  "bundle": {
+    "id": "all",
+    "name": "Every Buddy",
+    "price": 499,
+    "blurb": "Unlock every buddy, including the ones we add later."
+  },
   "items": [
-    { "id": "robot", "name": "Bolt", "kind": "Robot", "price": 0, "model": "builtin:robot", "blurb": "A calm white robot that hovers in with glowing eyes." },
-    { "id": "cat", "name": "Miso", "kind": "Cat", "price": 0, "model": "builtin:cat", "blurb": "A ginger cat who will absolutely judge you for skipping things." },
-    { "id": "penguin", "name": "Pip", "kind": "Penguin", "price": 199, "model": "builtin:penguin", "blurb": "Waddles in, flaps, and keeps you on schedule." },
-    { "id": "ghost", "name": "Boo", "kind": "Ghost", "price": 199, "model": "builtin:ghost", "blurb": "Floats in quietly. Haunts you only a little." },
-    { "id": "slime", "name": "Mochi", "kind": "Jelly", "price": 199, "model": "builtin:slime", "blurb": "A wobbly see-through jelly with a lot of enthusiasm." },
-    { "id": "duck", "name": "Quackers", "kind": "Duck", "price": 199, "model": "builtin:duck", "blurb": "A glossy rubber duck. Squeaky, punctual." }
+    {
+      "id": "kai",
+      "name": "Kai",
+      "kind": "Realistic",
+      "price": 0,
+      "image": "/models/kai.png",
+      "hip": 0.449,
+      "split": 0.491,
+      "blurb": "Easygoing and upbeat. Walks in, tells you straight, cheers when you finish.",
+      "hello": "Hey, quick one.",
+      "voice": {
+        "pitch": 0.9,
+        "rate": 1.02
+      }
+    },
+    {
+      "id": "mira",
+      "name": "Mira",
+      "kind": "Realistic",
+      "price": 0,
+      "image": "/models/mira.png",
+      "hip": 0.492,
+      "split": 0.481,
+      "blurb": "Calm and organised. Keeps your day moving without the noise.",
+      "hello": "Hi! Just a nudge.",
+      "voice": {
+        "pitch": 1.35,
+        "rate": 1.02
+      }
+    },
+    {
+      "id": "robot",
+      "name": "Bolt",
+      "kind": "Robot",
+      "price": 0,
+      "model": "builtin:robot",
+      "blurb": "A calm white robot that hovers in with glowing eyes."
+    },
+    {
+      "id": "cat",
+      "name": "Miso",
+      "kind": "Cat",
+      "price": 0,
+      "model": "builtin:cat",
+      "blurb": "A ginger cat who will absolutely judge you for skipping things."
+    },
+    {
+      "id": "penguin",
+      "name": "Pip",
+      "kind": "Penguin",
+      "price": 199,
+      "model": "builtin:penguin",
+      "blurb": "Waddles in, flaps, and keeps you on schedule."
+    },
+    {
+      "id": "ghost",
+      "name": "Boo",
+      "kind": "Ghost",
+      "price": 199,
+      "model": "builtin:ghost",
+      "blurb": "Floats in quietly. Haunts you only a little."
+    },
+    {
+      "id": "slime",
+      "name": "Mochi",
+      "kind": "Jelly",
+      "price": 199,
+      "model": "builtin:slime",
+      "blurb": "A wobbly see-through jelly with a lot of enthusiasm."
+    },
+    {
+      "id": "duck",
+      "name": "Quackers",
+      "kind": "Duck",
+      "price": 199,
+      "model": "builtin:duck",
+      "blurb": "A glossy rubber duck. Squeaky, punctual."
+    }
   ]
 }
