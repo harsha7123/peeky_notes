@@ -605,6 +605,11 @@ else {
     screen.on('display-metrics-changed', () => panel.webContents.send('panel', 'reflow'));
     sync({ full: true });
     if (!token && process.env.PEEKY_DEBUG_SIGNIN) startSignIn();
+    // PEEKY_DEBUG_AUTODONE=<seconds> (development only): press the buddy card's main button after a delay, for scripted tests.
+    if (process.env.PEEKY_DEBUG_AUTODONE) app.on('browser-window-created', (_e, w) => w.webContents.once('did-finish-load', () => {
+      if (!w.webContents.getURL().endsWith('buddy.html')) return;
+      w.webContents.executeJavaScript(`setTimeout(() => document.querySelector('.actions .yes')?.click(), ${+process.env.PEEKY_DEBUG_AUTODONE * 1000})`);
+    }));
     // PEEKY_DEBUG_VIEW=agenda|buddy|notes (development only): open the panel on that tab, for screenshots.
     if (process.env.PEEKY_DEBUG_VIEW) setTimeout(() => {
       panel.webContents.send('panel', 'toggle');

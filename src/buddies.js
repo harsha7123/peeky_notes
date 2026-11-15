@@ -246,7 +246,11 @@ export function registerBuddies(items, baseUrl = '') {
   for (const it of items) {
     const common = { name: it.name, kind: it.kind || 'Buddy', voice: it.voice || { pitch: 1, rate: 1 }, hello: it.hello || 'Hey! Time for your next thing.' };
     // A cut-out buddy: one transparent picture of a standing character (see server/models/README.md).
-    if (it.image) BUDDIES[it.id] = { ...common, image: abs(it.image), hip: it.hip, split: it.split, tall: true, flat: true };
+    if (it.image) {
+      const poses = {};
+      for (const [k, v] of Object.entries(it.poses || {})) poses[k] = [].concat(v).map(abs);
+      BUDDIES[it.id] = { ...common, image: abs(it.image), poses, hip: it.hip, split: it.split, tall: true, flat: true };
+    }
     else if (it.model && !it.model.startsWith('builtin:')) BUDDIES[it.id] = { ...common, model: abs(it.model), tall: it.tall !== false };
   }
 }
@@ -313,9 +317,23 @@ const loadTexture = (url) => {
 
 // The picture is cut into a torso and two legs (at `hip`, a 0–1 height from the feet, and `split`, the 0–1
 // horizontal gap between the legs). The legs hinge at the hip, so the character walks, hops and breathes.
-async function buildCutout({ image, hip = 0.47, split = 0.5 }) {
+async function buildCutout({ image, poses = {}, hip = 0.47, split = 0.5 }) {
   const tex = await loadTexture(image);
   tex.colorSpace = THREE.SRGBColorSpace;
+  // Optional pose pictures: `walk` (side-on, facing right; one picture or several frames) and `cheer`.
+  const posePlanes = async (urls) => Promise.all((urls || []).map(async (u) => {
+    const t = await loadTexture(u);
+    t.colorSpace = THREE.SRGBColorSpace;
+    const m = new THREE.Mesh(
+      new THREE.PlaneGeometry(2 * (t.image.width / t.image.height), 2),
+      new THREE.MeshBasicMaterial({ map: t, transparent: true, toneMapped: false, alphaTest: 0.03, side: THREE.DoubleSide }),
+    );
+    m.position.y = 1;
+    m.visible = false;
+    return m;
+  }));
+  const walkFrames = await posePlanes(poses.walk).catch(() => []);
+  const [cheer] = await posePlanes(poses.cheer).catch(() => []);
   const H = 2, W = H * (tex.image.width / tex.image.height);
   const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false, alphaTest: 0.03, side: THREE.DoubleSide });
   const piece = (u0, u1, v0, v1) => {
@@ -338,10 +356,20 @@ async function buildCutout({ image, hip = 0.47, split = 0.5 }) {
     return pivot;
   };
   const legL = leg(0, split), legR = leg(split, 1);
+  const standing = [torso, legL, legR];
+  for (const m of [...walkFrames, cheer].filter(Boolean)) root.add(m);
   const dummy = () => new THREE.Object3D();
   return {
     root, head: dummy(), armL: dummy(), armR: dummy(), eyes: [], mouth: dummy(), eyeRange: 0, generic: true, flat: true,
+    dir: -1,
     extra(t, mode) {
+      // Pick the picture for this moment: side-on while walking, thumbs-up while celebrating, otherwise facing you.
+      const walking = mode === 'walk' && walkFrames.length > 0;
+      const cheering = mode === 'happy' && !!cheer;
+      const frame = walking ? Math.floor(t * 7) % walkFrames.length : -1;
+      walkFrames.forEach((m, i) => { m.visible = i === frame; m.scale.x = this.dir; }); // walk art faces right
+      if (cheer) cheer.visible = cheering;
+      for (const m of standing) m.visible = !walking && !cheering;
       const stride = mode === 'walk' ? Math.sin(t * 10) * 0.3 : mode === 'nag' ? Math.sin(t * 14) * 0.12 : 0;
       damp(legL.rotation, 'z', stride, 0.35);
       damp(legR.rotation, 'z', -stride, 0.35);
@@ -416,8 +444,10 @@ export function createStage(canvas, { distance = 6.4, size = null, target = 0.95
   if (!size) new ResizeObserver(resize).observe(canvas);
   resize();
 
+  let lastX = 0;
   function animate(t, mt) {
     const { root, head, armL, armR, eyes, mouth } = rig;
+    if (mover.position.x !== lastX) { rig.dir = mover.position.x > lastX ? 1 : -1; lastX = mover.position.x; }
     let y = 0, rz = 0, ry = 0, aL = 0.12, aR = -0.12, hx = 0, hy = Math.sin(t * 0.7) * 0.15, hz = 0, sy = 1;
     switch (mode) {
       case 'walk':

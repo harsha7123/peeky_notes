@@ -8,6 +8,25 @@
   },
   "items": [
     {
+      "id": "veer",
+      "name": "Veer",
+      "kind": "Realistic",
+      "price": 0,
+      "image": "/models/veer.png",
+      "hip": 0.45,
+      "split": 0.482,
+      "poses": {
+        "walk": "/models/veer-walk.png",
+        "cheer": "/models/veer-cheer.png"
+      },
+      "blurb": "Walks in from the side, asks you straight, and gives a thumbs-up when you are done.",
+      "hello": "Buddy, quick one.",
+      "voice": {
+        "pitch": 0.85,
+        "rate": 1
+      }
+    },
+    {
       "id": "kai",
       "name": "Kai",
       "kind": "Realistic",

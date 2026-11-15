@@ -25,6 +25,26 @@ This writes `server/models/mybuddy.png` (transparent and trimmed) and prints the
 }
 ```
 
+### Poses (optional, recommended)
+
+Extra pictures of the same character make it feel alive, like `veer` in the catalog:
+
+```
+npm run cutout -- path/to/walk.jpg mybuddy walk     # side-on, mid-stride, FACING RIGHT
+npm run cutout -- path/to/cheer.jpg mybuddy cheer   # facing the camera, thumbs-up or celebrating
+```
+
+Then add to the buddy's catalog entry:
+
+```json
+"poses": { "walk": "/models/mybuddy-walk.png", "cheer": "/models/mybuddy-cheer.png" }
+```
+
+- **walk** is shown while the buddy walks on and off screen, mirrored automatically to face the way it's going.
+  Give a list of pictures (`"walk": ["…-walk1.png", "…-walk2.png"]`) for a frame-by-frame walk cycle.
+- **cheer** is shown when you press Done / Yes.
+- Without poses the buddy uses the main picture and swings its legs.
+
 Tips:
 - Use a picture **at least 1000 px tall** (2000+ is better). `kai.png` and `mira.png` here are small previews —
   replace them with full-size versions for a crisp result.

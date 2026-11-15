@@ -1,12 +1,14 @@
 // Turns a picture of a standing character on a plain background into a Peeky cut-out buddy.
-//   npm run cutout -- path/to/picture.jpg buddy-id
-// Writes server/models/<buddy-id>.png (transparent, trimmed) and prints the catalog entry to add.
+//   npm run cutout -- path/to/picture.jpg buddy-id            the main picture (standing, facing the camera)
+//   npm run cutout -- path/to/walk.jpg buddy-id walk         a pose picture: walk (side-on, facing right) or cheer
+// Writes server/models/<buddy-id>[-pose].png (transparent, trimmed) and prints the catalog entry to add.
 // Runs inside Electron only because Electron can decode JPG/PNG without extra dependencies.
 const { app, nativeImage } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
-const [input, id] = process.argv.slice(-2);
+const args = process.argv.slice(2).filter((a) => !a.startsWith('--') && !/cutout\.js$/.test(a));
+const [input, id, pose] = args;
 const fail = (msg) => { console.error(msg); app.exit(1); };
 
 app.whenReady().then(() => {
@@ -83,9 +85,13 @@ app.whenReady().then(() => {
   const hip = Math.min(0.6, Math.max(0.3, best.run / h + 0.02));
   const split = best.run > h * 0.1 ? best.x / w : 0.5;
 
-  const dest = path.join(__dirname, '..', 'server', 'models', `${id}.png`);
+  const dest = path.join(__dirname, '..', 'server', 'models', `${id}${pose ? `-${pose}` : ''}.png`);
   fs.writeFileSync(dest, nativeImage.createFromBitmap(out, { width: w, height: h }).toPNG());
   console.log(`Saved ${path.relative(process.cwd(), dest)} (${w}×${h})`);
+  if (pose) {
+    console.log(`\nIn server/catalog.json, add to this buddy:  "poses": { "${pose}": "/models/${id}-${pose}.png" }`);
+    return app.exit(0);
+  }
   if (h < 600) console.log('Note: this picture is small — use one at least 1000px tall for a crisp buddy.');
   console.log('\nAdd this to "items" in server/catalog.json (edit the name, kind, price and lines):\n');
   console.log(JSON.stringify({
