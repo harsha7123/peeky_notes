@@ -38,89 +38,8 @@ const onScroll = () => nav.classList.toggle('scrolled', scrollY > 24);
 addEventListener('scroll', onScroll, { passive: true });
 onScroll();
 api('/api/session').then(({ user }) => {
-  if (user) Object.assign($('#navCta'), { textContent: 'Open Peeky', href: '/app' });
+  if (user) { $('#navCta').href = '/app'; $('#navCta span').textContent = 'Open Peeky'; }
 }).catch(() => {});
-
-// ---------- hero: scrambling headline ----------
-
-const mega = $('#mega');
-const SYMBOLS = '<>*$!#%&?/+=';
-const chars = [];
-// Each letter gets its own span (so it can scramble), grouped by word so words never break mid-line.
-for (const node of [...mega.childNodes]) {
-  if (node.nodeType !== Node.TEXT_NODE) continue;
-  const frag = document.createDocumentFragment();
-  node.textContent.split(/( +)/).forEach((part) => {
-    if (!part) return;
-    if (/^ +$/.test(part)) { frag.append(part); return; }
-    const word = document.createElement('span');
-    word.className = 'w';
-    word.setAttribute('aria-hidden', 'true');
-    for (const c of part) {
-      const s = document.createElement('span');
-      s.className = 'ch';
-      s.textContent = c;
-      word.append(s);
-      chars.push({ el: s, c, x: 0, y: 0, on: false });
-    }
-    frag.append(word);
-  });
-  node.replaceWith(frag);
-}
-let centersDirty = true;
-const measure = () => {
-  for (const ch of chars) { const r = ch.el.getBoundingClientRect(); ch.x = r.left + r.width / 2; ch.y = r.top + r.height / 2; }
-  centersDirty = false;
-};
-addEventListener('resize', () => { centersDirty = true; });
-addEventListener('scroll', () => { centersDirty = true; }, { passive: true });
-
-let pointer = null, scrambleTick = 0;
-function scramble() {
-  if (!pointer) {
-    for (const ch of chars) if (ch.on) { ch.on = false; ch.el.textContent = ch.c; ch.el.classList.remove('sc'); }
-    return;
-  }
-  if (centersDirty) measure();
-  const radius = parseFloat(getComputedStyle(mega).fontSize) * 0.95;
-  for (const ch of chars) {
-    const near = Math.hypot(ch.x - pointer.x, ch.y - pointer.y) < radius;
-    if (near) {
-      ch.on = true;
-      ch.el.textContent = SYMBOLS[(Math.random() * SYMBOLS.length) | 0];
-      ch.el.classList.toggle('sc', Math.random() < 0.18);
-    } else if (ch.on) {
-      ch.on = false;
-      ch.el.textContent = ch.c;
-      ch.el.classList.remove('sc');
-    }
-  }
-}
-if (!reduced) {
-  setInterval(() => { if (pointer) scramble(); }, 70);
-}
-
-// ---------- hero: cursor tag ----------
-
-const hero = $('#hero');
-const tag = $('#cursorTag');
-hero.addEventListener('pointermove', (e) => {
-  if (e.pointerType !== 'mouse') return;
-  pointer = { x: e.clientX, y: e.clientY };
-  if (finePointer) {
-    tag.classList.add('on');
-    tag.style.transform = `translate(${e.clientX + 16}px, ${e.clientY + 18}px)`;
-  }
-  if (!reduced && ++scrambleTick % 2) scramble();
-});
-const leaveHero = () => { pointer = null; tag.classList.remove('on'); scramble(); };
-hero.addEventListener('pointerleave', leaveHero);
-// Scrolling moves the page under a still mouse; drop the tag until the mouse moves over the hero again.
-addEventListener('scroll', () => { if (pointer || tag.classList.contains('on')) leaveHero(); }, { passive: true });
-for (const el of hero.querySelectorAll('a, button, .hero-card')) {
-  el.addEventListener('pointerenter', () => tag.classList.remove('on'));
-  el.addEventListener('pointerleave', () => finePointer && tag.classList.add('on'));
-}
 
 // ---------- hero: live buddy with a reminder card ----------
 
@@ -241,7 +160,7 @@ api('/api/download').then(({ windows }) => {
 const tryInput = $('#tryText');
 const tryCanvas = $('#tryStage');
 const tryStage = createStage(tryCanvas, { distance: 6.4 });
-tryStage.setFraming({ toy: 0.55, tall: 0.86 });
+tryStage.setFraming({ toy: 0.62, tall: 0.9 });
 const offscreen = () => tryStage.halfWidth + 1.3;
 const tryReady = tryStage.setBuddy('robot').then(() => { tryStage.mover.position.x = offscreen(); });
 
@@ -264,6 +183,9 @@ async function parseNow() {
   $('#pWhen').textContent = parsed ? fmtWhen(parsed.due) : 'Add a time, like “at 5pm”';
   $('#pBuddy').textContent = BUDDIES[k].name;
   for (const c of document.querySelectorAll('.pchip')) c.classList.toggle('hit', !!parsed);
+  // The laptop's "Today" panel shows the reminder you're typing.
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  $('#dpLiveText').innerHTML = parsed ? `${esc(cap(parsed.text))}<small>${esc(fmtWhen(parsed.due))}</small>` : `${esc(text ? cap(text) : 'New reminder')}<small>add a time</small>`;
 }
 tryInput.addEventListener('input', () => { clearTimeout(parseTimer); parseTimer = setTimeout(parseNow, 220); });
 $('#tryExamples').addEventListener('click', (e) => {
@@ -274,6 +196,19 @@ $('#tryExamples').addEventListener('click', (e) => {
   tryInput.focus();
 });
 parseNow();
+
+// Taskbar clock on the laptop.
+const tickClock = () => { $('#deskClock').textContent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };
+tickClock();
+setInterval(tickClock, 15000);
+
+// Play the demo once by itself the first time the laptop scrolls into view.
+const autoplay = new IntersectionObserver((entries) => {
+  if (!entries.some((e) => e.isIntersecting)) return;
+  autoplay.disconnect();
+  setTimeout(() => { if (!running) $('#tryForm').requestSubmit(); }, 600);
+}, { threshold: 0.45 });
+autoplay.observe($('#desk2'));
 
 async function walk(to, ms) {
   const from = tryStage.mover.position.x;
@@ -344,5 +279,6 @@ $('#tryCard').addEventListener('click', async (e) => {
   await sleep(1500);
   $('#tryCard').classList.add('hidden');
   await walk(offscreen(), 900);
+  $('#dpLive').classList.toggle('done', b.dataset.tc === 'done');
   running = false;
 });

@@ -11,15 +11,20 @@
   <script type="importmap">{ "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }</script>
 </head>
 <body class="landing">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="arr" viewBox="0 0 16 16"><path d="M5 11L11 5M6 5h5v5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </svg>
+
   <nav class="lnav" id="lnav">
     <a class="lnav-logo" href="/"><span class="logo-mark"></span>Peeky</a>
     <div class="lnav-links">
       <a href="#try">Try it</a>
       <a href="#features">Features</a>
+      <a href="#how">How it works</a>
       <a href="#buddies">Buddies</a>
       <a href="#pricing">Pricing</a>
     </div>
-    <a class="lnav-cta" id="navCta" href="/signin">Sign in</a>
+    <a class="btn-p sm light" id="navCta" href="/signin"><span>Sign in</span></a>
   </nav>
 
   <!-- HERO -->
@@ -28,50 +33,63 @@
     <canvas id="heroStage" aria-hidden="true"></canvas>
     <div class="hero-inner">
       <span class="badge">Peeky for Windows</span>
-      <h1 class="mega" id="mega" aria-label="Never miss the small things.">Never miss<br>the small things.</h1>
-      <div class="hero-copy">
-        <p>Write a to-do, or plan your day in a Google Sheet.<br>When it's time, a buddy walks onto your screen and tells you.<br>No pop-up to ignore. No app to remember to check.</p>
-        <a class="pill-btn" href="/signup">Get Peeky free <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <h1 class="mega">Never miss<br>the small things.</h1>
+      <p class="hero-copy">Write a to-do, or plan your day in a Google Sheet. When it's time, a buddy walks onto your screen and tells you — no pop-up to ignore, no app to remember to check.</p>
+      <div class="hero-ctas">
+        <a class="btn-p light" href="/signup"><span>Get Peeky free</span><i class="ico"><svg><use href="#arr"/></svg></i></a>
+        <a class="btn-p outline" href="#try"><span>See it in action</span></a>
       </div>
+      <p class="hero-meta"><b>Free</b> · Windows 10 &amp; 11 · Syncs with the web</p>
     </div>
     <div class="hero-card" id="heroCard" aria-live="polite">
       <div class="hc-top"><span class="hc-who">Bolt</span><span class="hc-tag" id="hcTag">Water break</span></div>
       <div class="hc-title" id="hcTitle">Time for a glass of water.</div>
       <div class="hc-actions" id="hcActions"><button class="yes" data-hc="yes">Yes</button><button data-hc="later">Later</button></div>
     </div>
-    <div class="cursor-tag" id="cursorTag" aria-hidden="true">You</div>
-    <a class="scroll-hint" href="#try" aria-label="Scroll to try it"><span></span></a>
   </header>
 
   <!-- MARQUEE -->
-  <div class="marquee" aria-hidden="true">
-    <div class="marquee-track" id="marquee"></div>
-  </div>
+  <div class="marquee" aria-hidden="true"><div class="marquee-track" id="marquee"></div></div>
 
-  <!-- TRY IT -->
+  <!-- TRY IT: split layout -->
   <section class="lsec try" id="try">
-    <div class="lwrap">
-      <p class="kicker reveal">Try it</p>
-      <h2 class="big reveal">Type it like<br>you'd say it.</h2>
-      <p class="lede-l reveal">Peeky understands times the way people write them. Try one — then watch your buddy show up.</p>
-      <form class="try-form reveal" id="tryForm" autocomplete="off" onsubmit="return false">
-        <input id="tryText" value="drink water in 10 sec #cat" aria-label="Write a reminder" spellcheck="false">
-        <button type="submit">Remind me <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      </form>
-      <div class="try-examples reveal" id="tryExamples">
-        <button type="button">call mom at 5pm</button>
-        <button type="button">stretch in 20 min #duck</button>
-        <button type="button">standup tomorrow 9:30am #robot</button>
-        <button type="button">pay rent friday #ghost</button>
+    <div class="lwrap try-grid">
+      <div class="try-copy">
+        <p class="kicker reveal">Try it</p>
+        <h2 class="big reveal">Type it like you'd say it.</h2>
+        <p class="lede-l reveal">Peeky understands times the way people write them. Try one and watch your buddy show up on the laptop.</p>
+        <form class="try-form reveal" id="tryForm" autocomplete="off" onsubmit="return false">
+          <input id="tryText" value="drink water in 10 sec #cat" aria-label="Write a reminder" spellcheck="false">
+          <button type="submit" class="btn-p dark sm"><span>Remind me</span><i class="ico"><svg><use href="#arr"/></svg></i></button>
+        </form>
+        <div class="try-examples reveal" id="tryExamples">
+          <button type="button">call mom at 5pm</button>
+          <button type="button">stretch in 20 min #duck</button>
+          <button type="button">standup tomorrow 9:30am</button>
+          <button type="button">pay rent friday #ghost</button>
+        </div>
+        <div class="parsed reveal" id="parsed">
+          <div class="pchip"><span>Task</span><b id="pTask">—</b></div>
+          <div class="pchip"><span>When</span><b id="pWhen">—</b></div>
+          <div class="pchip"><span>Buddy</span><b id="pBuddy">—</b></div>
+        </div>
       </div>
-      <div class="parsed reveal" id="parsed">
-        <div class="pchip"><span>Task</span><b id="pTask">—</b></div>
-        <div class="pchip"><span>When</span><b id="pWhen">—</b></div>
-        <div class="pchip"><span>Buddy</span><b id="pBuddy">—</b></div>
-      </div>
+
       <div class="desk2 reveal" id="desk2">
-        <div class="desk2-bar"><i></i><i></i><i></i><span>Your laptop</span></div>
-        <div class="desk2-doc"><div></div><div></div><div></div><div></div><div></div></div>
+        <div class="desk2-bar"><i></i><i></i><i></i><span>Monday plan — Docs</span></div>
+        <div class="desk2-doc">
+          <h5>Monday plan</h5>
+          <p>Ship the onboarding flow and review pricing copy before the 3pm sync.</p>
+          <ul><li>Finalize hero copy</li><li>QA the sign-up form</li><li>Send the invoice</li></ul>
+          <p class="muted">Notes from Friday: keep the first screen calm, one clear action.</p>
+        </div>
+        <aside class="desk2-panel" aria-hidden="true">
+          <b>Today</b>
+          <div class="dp-row done"><i></i><span>Morning stretch<small>8:30 AM</small></span></div>
+          <div class="dp-row"><i></i><span>Standup<small>9:30 AM</small></span></div>
+          <div class="dp-row hot" id="dpLive"><i></i><span id="dpLiveText">Drink water<small>in 10 sec</small></span></div>
+          <div class="dp-row"><i></i><span>Call mom<small>5:00 PM</small></span></div>
+        </aside>
         <canvas id="tryStage"></canvas>
         <div class="try-card hidden" id="tryCard">
           <div class="hc-top"><span class="hc-who" id="tcWho">Bolt</span><span class="hc-tag">Reminder</span><span class="tc-when" id="tcWhen"></span></div>
@@ -79,63 +97,74 @@
           <div class="hc-actions"><button class="yes" data-tc="done">Done</button><button data-tc="later">5 min</button></div>
         </div>
         <div class="try-wait hidden" id="tryWait"></div>
+        <div class="desk2-task"><span class="dt-start"></span><span class="dt-app on"></span><span class="dt-app"></span><span class="dt-app"></span><span class="dt-clock" id="deskClock"></span></div>
       </div>
     </div>
   </section>
 
-  <!-- FEATURES -->
+  <!-- FEATURES: split header + bento -->
   <section class="lsec features" id="features">
     <div class="lwrap">
-      <p class="kicker reveal">What it does</p>
-      <h2 class="big reveal">Built for the things<br>you keep forgetting.</h2>
+      <div class="sec-head">
+        <div><p class="kicker reveal">What it does</p><h2 class="big reveal">Built for the things you keep forgetting.</h2></div>
+        <p class="lede-l reveal">Notes, routines and gentle nudges — delivered by someone who actually walks up and tells you.</p>
+      </div>
       <div class="bento">
         <article class="bcell c-cobalt span2 reveal tilt">
           <span class="bnum">01</span>
-          <h3>Notes that peek.</h3>
-          <p>A slim handle waits on the edge of your screen. Hover and your notes slide out. Every line with a time becomes a reminder.</p>
+          <div><h3>Notes that peek.</h3>
+          <p>A slim handle waits on the edge of your screen. Hover and your notes slide out. Every line with a time becomes a reminder.</p></div>
           <div class="peek-demo" aria-hidden="true"><span class="peek-handle"></span><div class="peek-sheet"><b>Today</b><i></i><i></i><i></i></div></div>
         </article>
         <article class="bcell c-lime reveal tilt">
           <span class="bnum">02</span>
-          <h3>It actually shows up.</h3>
-          <p>Your buddy walks in, says it out loud, and nags kindly if you ignore it.</p>
+          <div><h3>It actually shows up.</h3><p>Your buddy walks in, says it out loud, and nags kindly if you ignore it.</p></div>
         </article>
         <article class="bcell c-ink reveal tilt">
           <span class="bnum">03</span>
-          <h3>Your routine, from a Sheet.</h3>
-          <p>Time, Task, Days. Peeky reads it and reminds you every day it applies.</p>
+          <div><h3>Your routine, from a Sheet.</h3><p>Time, Task, Days. Reminded every day it applies.</p></div>
           <div class="mini-sheet" aria-hidden="true">
             <div><b>7:00</b>Drink water<em>Daily</em></div>
             <div><b>9:30</b>Standup<em>Weekdays</em></div>
-            <div><b>18:30</b>Gym<em>Mon Wed Fri</em></div>
+            <div><b>18:30</b>Gym<em>Mon · Wed · Fri</em></div>
           </div>
         </article>
         <article class="bcell c-ink reveal tilt">
           <span class="bnum">04</span>
-          <h3>Focus sessions.</h3>
-          <p>25 or 50 minutes. Nudges wait. Your buddy tells you when to stop.</p>
+          <div><h3>Focus sessions.</h3><p>25 or 50 minutes. Nudges wait. Your buddy tells you when to stop.</p></div>
           <div class="ring" aria-hidden="true"><span>25:00</span></div>
         </article>
-        <article class="bcell c-ink reveal tilt">
-          <span class="bnum">05</span>
-          <h3>Healthy nudges.</h3>
-          <p>Water, stretch, eyes, posture — on your schedule. Answer Yes or Later.</p>
-        </article>
         <article class="bcell c-white reveal tilt">
-          <span class="bnum">06</span>
-          <h3>Everywhere you sign in.</h3>
-          <p>Notes sync between the web and every laptop you link. Sign in once from the browser.</p>
+          <span class="bnum">05</span>
+          <div><h3>Healthy nudges.</h3><p>Water, stretch, eyes, posture — on your schedule. Answer Yes or Later.</p></div>
         </article>
       </div>
     </div>
   </section>
 
-  <!-- BUDDIES -->
+  <!-- HOW IT WORKS: light section, horizontal steps -->
+  <section class="lsec how" id="how">
+    <div class="lwrap">
+      <div class="sec-head">
+        <div><p class="kicker reveal">How it works</p><h2 class="big reveal">Set up in a minute.</h2></div>
+        <a class="btn-p dark reveal" href="/signup"><span>Create your account</span><i class="ico"><svg><use href="#arr"/></svg></i></a>
+      </div>
+      <ol class="steps2">
+        <li class="reveal"><span>1</span><h3>Create your account</h3><p>Sign up on the web. Your notes, routine and buddies sync everywhere.</p></li>
+        <li class="reveal"><span>2</span><h3>Link your laptop</h3><p>Open the app, click Sign in, approve it in your browser. Done.</p></li>
+        <li class="reveal"><span>3</span><h3>Add notes or a Sheet</h3><p>Type to-dos with a time, or paste your Google Sheet link.</p></li>
+        <li class="reveal"><span>4</span><h3>Get reminded</h3><p>Your buddy walks in when it's time. Done, Later, or a thumbs-up.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- BUDDIES: cobalt section -->
   <section class="lsec buddies" id="buddies">
     <div class="lwrap">
-      <p class="kicker reveal">Buddies</p>
-      <h2 class="big reveal">Pick who<br>reminds you.</h2>
-      <p class="lede-l reveal">Realistic people and hand-made 3D characters. A few are free — collect the rest.</p>
+      <div class="sec-head">
+        <div><p class="kicker reveal">Buddies</p><h2 class="big reveal">Pick who reminds you.</h2></div>
+        <p class="lede-l reveal">Realistic people and hand-made 3D characters. A few are free — collect the rest. Drag to browse.</p>
+      </div>
     </div>
     <div class="shelf2" id="shelf2"></div>
   </section>
@@ -143,20 +172,20 @@
   <!-- PRICING -->
   <section class="lsec pricing" id="pricing">
     <div class="lwrap">
-      <p class="kicker reveal">Pricing</p>
-      <h2 class="big reveal">Free to start.<br>Yours to keep.</h2>
+      <div class="sec-head">
+        <div><p class="kicker reveal">Pricing</p><h2 class="big reveal">Free to start. Yours to keep.</h2></div>
+        <p class="lede-l reveal">No subscription. Buy a buddy once and it's yours on every computer.</p>
+      </div>
       <div class="plans2">
         <div class="plan2 reveal">
-          <h3>Peeky</h3>
-          <div class="p2-price">Free</div>
+          <div class="p2-head"><h3>Peeky</h3><div class="p2-price">Free</div></div>
           <ul><li>Unlimited notes and reminders</li><li>Google Sheets routine</li><li>Focus sessions and nudges</li><li>Free buddies included</li></ul>
-          <a class="pill-btn ghost" href="/signup">Get started</a>
+          <a class="btn-p outline" href="/signup"><span>Get started</span><i class="ico"><svg><use href="#arr"/></svg></i></a>
         </div>
         <div class="plan2 best reveal">
-          <h3>Every Buddy</h3>
-          <div class="p2-price" id="bundlePrice">$4.99</div>
+          <div class="p2-head"><h3>Every Buddy</h3><div class="p2-price" id="bundlePrice">$4.99</div></div>
           <ul><li>Everything in Peeky</li><li>Every buddy, now and later</li><li>One-time purchase</li><li>Or buy buddies one at a time</li></ul>
-          <a class="pill-btn" href="/signup?next=/app%23buddies">Get Every Buddy</a>
+          <a class="btn-p light" href="/signup?next=/app%23buddies"><span>Get Every Buddy</span><i class="ico"><svg><use href="#arr"/></svg></i></a>
         </div>
       </div>
     </div>
@@ -164,22 +193,28 @@
 
   <!-- CTA -->
   <section class="lsec final" id="download">
-    <div class="lwrap">
-      <h2 class="big reveal">Your buddy is<br>waiting.</h2>
-      <div class="final-ctas reveal">
-        <a class="pill-btn" href="/signup">Create your account <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 11L11 5M6 5h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-        <a class="pill-btn ghost" id="dl" href="/download/windows">Download for Windows</a>
+    <div class="lwrap final-grid">
+      <h2 class="big reveal">Your buddy is waiting.</h2>
+      <div class="reveal">
+        <div class="final-ctas">
+          <a class="btn-p dark" href="/signup"><span>Create your account</span><i class="ico"><svg><use href="#arr"/></svg></i></a>
+          <a class="btn-p outline-ink" id="dl" href="/download/windows"><span>Download for Windows</span></a>
+        </div>
+        <p class="final-note" id="dlNote">Windows 10 and 11. Free.</p>
       </div>
-      <p class="final-note" id="dlNote">Windows 10 and 11. Free.</p>
     </div>
   </section>
 
   <footer class="lfoot">
-    <div class="lfoot-word" aria-hidden="true">Peeky</div>
-    <div class="lfoot-row">
-      <span>© 2026 Peeky</span>
-      <span><a href="/signin">Sign in</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></span>
+    <div class="lwrap lfoot-inner">
+      <div class="lfoot-brand"><span class="logo-mark"></span><span>Peeky</span><small>A buddy for the small things.</small></div>
+      <div class="lfoot-cols">
+        <div><b>Product</b><a href="#try">Try it</a><a href="#features">Features</a><a href="#buddies">Buddies</a><a href="#pricing">Pricing</a></div>
+        <div><b>Account</b><a href="/signup">Create account</a><a href="/signin">Sign in</a><a href="/forgot">Reset password</a></div>
+        <div><b>Legal</b><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+      </div>
     </div>
+    <div class="lwrap lfoot-row"><span>© 2026 Peeky</span><span>Made for people who forget the small things.</span></div>
   </footer>
 
   <div id="confetti" aria-hidden="true"></div>
