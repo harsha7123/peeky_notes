@@ -1,33 +1,348 @@
 import { createStage, BUDDIES, registerBuddies } from '/shared/buddies.js';
-import { api, esc, icon, price, portraits, NAV_HTML, $ } from './common.js';
+import { api, esc, price, portraits, $ } from './common.js';
 
-const { user } = await api('/api/session');
-$('#nav').innerHTML = NAV_HTML(user);
-for (const el of document.querySelectorAll('[data-icon]')) el.innerHTML = icon(el.dataset.icon);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const finePointer = matchMedia('(pointer: fine)').matches;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
-// Hero: a live buddy in the mock laptop that watches the cursor.
-const heroCanvas = $('#heroBuddy');
-const hero = createStage(heroCanvas, { distance: 6.2 });
-await hero.setBuddy('robot');
-hero.setMode('wave');
+function tween(ms, fn) {
+  return new Promise((done) => {
+    const t0 = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / ms);
+      fn(k);
+      if (k < 1) requestAnimationFrame(step); else done();
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+function confettiAt(el) {
+  if (reduced) return;
+  const r = el.getBoundingClientRect();
+  const colors = ['#c6ff34', '#2b59ff', '#f3f5f9'];
+  for (let i = 0; i < 34; i++) {
+    const p = document.createElement('i');
+    const a = Math.random() * Math.PI * 2, d = 70 + Math.random() * 130;
+    p.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top + r.height / 2}px;background:${pick(colors)};--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d - 60}px`;
+    $('#confetti').appendChild(p);
+    setTimeout(() => p.remove(), 1200);
+  }
+}
+
+// ---------- nav ----------
+
+const nav = $('#lnav');
+const onScroll = () => nav.classList.toggle('scrolled', scrollY > 24);
+addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+api('/api/session').then(({ user }) => {
+  if (user) Object.assign($('#navCta'), { textContent: 'Open Peeky', href: '/app' });
+}).catch(() => {});
+
+// ---------- hero: scrambling headline ----------
+
+const mega = $('#mega');
+const SYMBOLS = '<>*$!#%&?/+=';
+const chars = [];
+// Each letter gets its own span (so it can scramble), grouped by word so words never break mid-line.
+for (const node of [...mega.childNodes]) {
+  if (node.nodeType !== Node.TEXT_NODE) continue;
+  const frag = document.createDocumentFragment();
+  node.textContent.split(/( +)/).forEach((part) => {
+    if (!part) return;
+    if (/^ +$/.test(part)) { frag.append(part); return; }
+    const word = document.createElement('span');
+    word.className = 'w';
+    word.setAttribute('aria-hidden', 'true');
+    for (const c of part) {
+      const s = document.createElement('span');
+      s.className = 'ch';
+      s.textContent = c;
+      word.append(s);
+      chars.push({ el: s, c, x: 0, y: 0, on: false });
+    }
+    frag.append(word);
+  });
+  node.replaceWith(frag);
+}
+let centersDirty = true;
+const measure = () => {
+  for (const ch of chars) { const r = ch.el.getBoundingClientRect(); ch.x = r.left + r.width / 2; ch.y = r.top + r.height / 2; }
+  centersDirty = false;
+};
+addEventListener('resize', () => { centersDirty = true; });
+addEventListener('scroll', () => { centersDirty = true; }, { passive: true });
+
+let pointer = null, scrambleTick = 0;
+function scramble() {
+  if (!pointer) {
+    for (const ch of chars) if (ch.on) { ch.on = false; ch.el.textContent = ch.c; ch.el.classList.remove('sc'); }
+    return;
+  }
+  if (centersDirty) measure();
+  const radius = parseFloat(getComputedStyle(mega).fontSize) * 0.95;
+  for (const ch of chars) {
+    const near = Math.hypot(ch.x - pointer.x, ch.y - pointer.y) < radius;
+    if (near) {
+      ch.on = true;
+      ch.el.textContent = SYMBOLS[(Math.random() * SYMBOLS.length) | 0];
+      ch.el.classList.toggle('sc', Math.random() < 0.18);
+    } else if (ch.on) {
+      ch.on = false;
+      ch.el.textContent = ch.c;
+      ch.el.classList.remove('sc');
+    }
+  }
+}
+if (!reduced) {
+  setInterval(() => { if (pointer) scramble(); }, 70);
+}
+
+// ---------- hero: cursor tag ----------
+
+const hero = $('#hero');
+const tag = $('#cursorTag');
+hero.addEventListener('pointermove', (e) => {
+  if (e.pointerType !== 'mouse') return;
+  pointer = { x: e.clientX, y: e.clientY };
+  if (finePointer) {
+    tag.classList.add('on');
+    tag.style.transform = `translate(${e.clientX + 16}px, ${e.clientY + 18}px)`;
+  }
+  if (!reduced && ++scrambleTick % 2) scramble();
+});
+const leaveHero = () => { pointer = null; tag.classList.remove('on'); scramble(); };
+hero.addEventListener('pointerleave', leaveHero);
+// Scrolling moves the page under a still mouse; drop the tag until the mouse moves over the hero again.
+addEventListener('scroll', () => { if (pointer || tag.classList.contains('on')) leaveHero(); }, { passive: true });
+for (const el of hero.querySelectorAll('a, button, .hero-card')) {
+  el.addEventListener('pointerenter', () => tag.classList.remove('on'));
+  el.addEventListener('pointerleave', () => finePointer && tag.classList.add('on'));
+}
+
+// ---------- hero: live buddy with a reminder card ----------
+
+const heroCanvas = $('#heroStage');
+const heroStage = createStage(heroCanvas, { distance: 6.4 });
+heroStage.setFraming({ toy: 0.6, tall: 0.88 });
+heroStage.setBuddy('robot').then(() => heroStage.setMode('wave'));
 addEventListener('pointermove', (e) => {
   const r = heroCanvas.getBoundingClientRect();
-  hero.lookAt((e.clientX - (r.left + r.width / 2)) / 500, (r.top + r.height * 0.3 - e.clientY) / 400);
+  heroStage.lookAt((e.clientX - (r.left + r.width / 2)) / 520, (r.top + r.height * 0.35 - e.clientY) / 420);
 });
-heroCanvas.addEventListener('click', () => { hero.setMode('happy'); setTimeout(() => hero.setMode('wave'), 1100); });
+heroCanvas.addEventListener('click', () => { heroStage.setMode('happy'); setTimeout(() => heroStage.setMode('wave'), 1100); });
 
-// Download button only when an installer is published.
+const HERO_LINES = [
+  ['Water break', 'Time for a glass of water.'],
+  ['Stretch', 'Stand up and stretch for a minute.'],
+  ['Reminder', 'Call mom — it\'s 5:00 PM.'],
+  ['Eye break', 'Look far away for 20 seconds.'],
+  ['Focus', 'Focus session done. Take a break.'],
+];
+let heroIdx = 0, heroBusy = false;
+function showHeroLine() {
+  const [t, title] = HERO_LINES[heroIdx % HERO_LINES.length];
+  $('#hcTag').textContent = t;
+  $('#hcTitle').textContent = title;
+  $('#hcActions').classList.remove('hidden');
+  const card = $('#heroCard');
+  card.classList.add('swap');
+  void card.offsetWidth;
+  card.classList.remove('swap');
+}
+$('#heroCard').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-hc]');
+  if (!b || heroBusy) return;
+  heroBusy = true;
+  $('#hcActions').classList.add('hidden');
+  if (b.dataset.hc === 'yes') {
+    heroStage.setMode('happy');
+    confettiAt(b);
+    $('#hcTitle').textContent = pick(['Nice.', 'Nailed it.', 'Proud of you.']);
+  } else {
+    heroStage.setMode('sleep');
+    $('#hcTitle').textContent = 'Okay — back in 10 minutes.';
+  }
+  await sleep(1800);
+  heroStage.setMode('wave');
+  heroIdx++;
+  showHeroLine();
+  heroBusy = false;
+});
+
+// ---------- marquee ----------
+
+const TICKER = [
+  ['Drink water', '3:00 PM'], ['Call mom', '5:00 PM'], ['Stretch', 'in 20 min'], ['Standup', 'tomorrow 9:30'],
+  ['Pay rent', 'Friday'], ['Gym', 'Mon · Wed · Fri'], ['Screens off', '10:30 PM'], ['Water the plants', 'every evening'],
+];
+const tickerHtml = TICKER.map(([t, w]) => `<span>${esc(t)} <small>${esc(w)}</small></span>`).join('');
+$('#marquee').innerHTML = tickerHtml + tickerHtml;
+
+// ---------- scroll reveals + tilt ----------
+
+const io = new IntersectionObserver((entries) => {
+  for (const en of entries) if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+}, { threshold: 0.14, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach((el, i) => {
+  el.style.transitionDelay = `${(i % 4) * 60}ms`;
+  io.observe(el);
+});
+
+if (finePointer && !reduced) {
+  for (const el of document.querySelectorAll('.tilt')) {
+    el.addEventListener('pointermove', (e) => {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+      el.style.transform = `perspective(900px) rotateX(${-y * 5}deg) rotateY(${x * 6}deg) translateY(-3px)`;
+    });
+    el.addEventListener('pointerleave', () => { el.style.transform = ''; });
+  }
+}
+
+// ---------- catalog: buddy shelf, price, download ----------
+
+api('/api/catalog').then((cat) => {
+registerBuddies(cat.items);
+$('#bundlePrice').textContent = price(cat.bundle.price);
+$('#shelf2').innerHTML = cat.items.filter((b) => BUDDIES[b.id]).map((b) => `
+  <a class="bud" href="/signup" data-id="${esc(b.id)}">
+    <div class="bimg"><img alt="${esc(b.name)}"></div>
+    <h4>${esc(b.name)}</h4>
+    <div class="bmeta"><span>${esc(b.kind)}</span><span class="bprice ${b.price ? '' : 'free'}">${price(b.price)}</span></div>
+  </a>`).join('');
+return portraits(createStage, cat.items.map((b) => b.id).filter((k) => BUDDIES[k]), { size: 360, distance: 4.6, target: 1.0 }).then((pics) => {
+  for (const el of shelf.querySelectorAll('[data-id]')) if (pics[el.dataset.id]) el.querySelector('img').src = pics[el.dataset.id];
+});
+}).catch(() => {});
+const shelf = $('#shelf2');
+// Drag to scroll with a mouse.
+let drag = null;
+shelf.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse') drag = { x: e.clientX, s: shelf.scrollLeft, moved: false }; });
+addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x;
+  if (Math.abs(dx) > 4) { drag.moved = true; shelf.classList.add('drag'); }
+  shelf.scrollLeft = drag.s - dx;
+});
+addEventListener('pointerup', () => { if (drag) setTimeout(() => shelf.classList.remove('drag'), 0); setTimeout(() => { drag = null; }, 0); });
+shelf.addEventListener('click', (e) => { if (drag?.moved) e.preventDefault(); }, true);
+
 api('/api/download').then(({ windows }) => {
   if (windows) return;
   $('#dl').classList.add('hidden');
-  $('#dlNote').textContent = 'The Windows app is coming very soon — create your account now and use Peeky on the web.';
+  $('#dlNote').textContent = 'The Windows app is almost here — create your account now and use Peeky on the web.';
+}).catch(() => {});
+
+// ---------- try it: parse as you type, then the buddy acts it out ----------
+
+const tryInput = $('#tryText');
+const tryCanvas = $('#tryStage');
+const tryStage = createStage(tryCanvas, { distance: 6.4 });
+tryStage.setFraming({ toy: 0.55, tall: 0.86 });
+const offscreen = () => tryStage.halfWidth + 1.3;
+const tryReady = tryStage.setBuddy('robot').then(() => { tryStage.mover.position.x = offscreen(); });
+
+const fmtWhen = (ms) => {
+  const d = new Date(ms), t = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const diff = Math.round((new Date(ms).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 864e5);
+  const secs = Math.round((ms - Date.now()) / 1000);
+  if (secs > 0 && secs < 90) return `in ${secs} sec`;
+  if (diff === 0) return `Today, ${t}`;
+  if (diff === 1) return `Tomorrow, ${t}`;
+  return `${d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}, ${t}`;
+};
+
+let parsed = null, parseTimer = 0;
+async function parseNow() {
+  const text = tryInput.value.trim();
+  parsed = text ? await api(`/api/parse?text=${encodeURIComponent(text)}`).catch(() => null) : null;
+  const k = parsed?.buddy && BUDDIES[parsed.buddy] ? parsed.buddy : 'robot';
+  $('#pTask').textContent = parsed ? parsed.text : text || '—';
+  $('#pWhen').textContent = parsed ? fmtWhen(parsed.due) : 'Add a time, like “at 5pm”';
+  $('#pBuddy').textContent = BUDDIES[k].name;
+  for (const c of document.querySelectorAll('.pchip')) c.classList.toggle('hit', !!parsed);
+}
+tryInput.addEventListener('input', () => { clearTimeout(parseTimer); parseTimer = setTimeout(parseNow, 220); });
+$('#tryExamples').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  tryInput.value = b.textContent;
+  parseNow();
+  tryInput.focus();
+});
+parseNow();
+
+async function walk(to, ms) {
+  const from = tryStage.mover.position.x;
+  tryStage.setMode('walk');
+  tryStage.mover.rotation.y = (to < from ? -1 : 1) * (tryStage.flat ? 0.12 : 0.9);
+  await tween(ms, (k) => { tryStage.mover.position.x = from + (to - from) * k; });
+  const ry = tryStage.mover.rotation.y;
+  await tween(220, (k) => { tryStage.mover.rotation.y = ry * (1 - k); });
+}
+
+let running = false, waitTimer = 0;
+$('#tryForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (running) return;
+  await tryReady;
+  await parseNow();
+  if (!parsed) { tryInput.focus(); return; }
+  running = true;
+  const p = parsed;
+  const k = p.buddy && BUDDIES[p.buddy] ? p.buddy : 'robot';
+  $('#tryCard').classList.add('hidden');
+  if (tryStage.mover.position.x < offscreen() - 0.1) await walk(offscreen(), 700);
+  await tryStage.setBuddy(k);
+
+  // Short countdowns play out for real; anything later is fast-forwarded.
+  const wait = p.due - Date.now();
+  const box = $('#tryWait');
+  box.classList.remove('hidden');
+  if (wait > 0 && wait <= 30000) {
+    await new Promise((res) => {
+      const tick = () => {
+        const s = Math.max(0, Math.ceil((p.due - Date.now()) / 1000));
+        box.innerHTML = `0:${String(s).padStart(2, '0')}<small>until ${esc(BUDDIES[k].name)} walks in</small>`;
+        if (s <= 0) { clearInterval(waitTimer); res(); }
+      };
+      tick();
+      waitTimer = setInterval(tick, 250);
+    });
+  } else {
+    box.innerHTML = `${esc(fmtWhen(p.due))}<small>Skipping ahead for the demo…</small>`;
+    await sleep(1100);
+  }
+  box.classList.add('hidden');
+
+  tryStage.mover.position.x = offscreen();
+  await walk(0, 1150);
+  tryStage.setMode('wave');
+  $('#tcWho').textContent = BUDDIES[k].name;
+  $('#tcWhen').textContent = new Date(Math.max(p.due, Date.now())).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  $('#tcTitle').textContent = p.text.charAt(0).toUpperCase() + p.text.slice(1);
+  const card = $('#tryCard');
+  card.querySelector('.hc-actions').classList.remove('hidden');
+  card.classList.remove('hidden');
 });
 
-// Buddy shelf from the live catalog.
-const cat = await api('/api/catalog');
-registerBuddies(cat.items);
-$('#bundlePrice').textContent = price(cat.bundle.price);
-const shelf = $('#shelf');
-shelf.innerHTML = cat.items.map((b) => `<div class="card b" data-id="${esc(b.id)}"><img alt="${esc(b.name)} the ${esc(b.kind)}"><b>${esc(b.name)}</b><small>${esc(b.kind)} · ${price(b.price)}</small></div>`).join('');
-const pics = await portraits(createStage, cat.items.map((b) => b.id).filter((k) => BUDDIES[k]));
-for (const el of shelf.querySelectorAll('[data-id]')) if (pics[el.dataset.id]) el.querySelector('img').src = pics[el.dataset.id];
+$('#tryCard').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-tc]');
+  if (!b) return;
+  $('#tryCard .hc-actions').classList.add('hidden');
+  if (b.dataset.tc === 'done') {
+    tryStage.setMode('happy');
+    confettiAt(b);
+    $('#tcTitle').textContent = pick(['Nice work!', 'Nailed it!', 'Done and dusted.']);
+  } else {
+    tryStage.setMode('sleep');
+    $('#tcTitle').textContent = 'Okay — back in 5 minutes.';
+  }
+  await sleep(1500);
+  $('#tryCard').classList.add('hidden');
+  await walk(offscreen(), 900);
+  running = false;
+});

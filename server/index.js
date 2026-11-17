@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const db = require('./db');
 const mail = require('./mail');
 const { fetchRoutine } = require('./sheets');
-const { parseNote, registerBuddyIds } = require('../src/parse');
+const { parseNote, parseLine, registerBuddyIds } = require('../src/parse');
 
 const PROD = process.env.NODE_ENV === 'production';
 const PORT = +process.env.PORT || 8787;
@@ -262,6 +262,13 @@ app.post('/api/auth/reset', rateLimit('reset', 10, 60 * 6e4), (req, res) => {
 });
 
 // Like /api/me but never 401s — for public pages that just want to know who's signed in.
+// Public: how Peeky reads a reminder (powers the "try it" demo on the landing page).
+app.get('/api/parse', rateLimit('parse', 120, 6e4), (req, res) => {
+  registerBuddyIds(catalog().items.map((i) => i.id));
+  const r = parseLine(String(req.query.text || '').slice(0, 200));
+  res.json(r ? { text: r.text, due: r.due, buddy: r.buddy } : null);
+});
+
 app.get('/api/session', optionalAuth, (req, res) => res.json({ user: req.user ? publicUser(req.user) : null }));
 
 app.get('/api/me', auth, (req, res) => {
