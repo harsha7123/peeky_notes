@@ -121,76 +121,26 @@ if (finePointer && !reduced) {
   }
 }
 
-// ---------- catalog: rotating buddy ring, price ----------
-
-const ring = $('#ring');
-const ringStage = $('#ringStage');
-let ringCards = [], ringAngle = 0, ringSpeed = 12, ringHover = false, ringDrag = null;
+// ---------- catalog: looping buddy row, price ----------
 
 api('/api/catalog').then((cat) => {
   registerBuddies(cat.items);
   $('#bundlePrice').textContent = price(cat.bundle.price);
   // The website shows the 3D characters only (picture-based "realistic" buddies stay in the app).
   const items = cat.items.filter((b) => BUDDIES[b.id] && !b.image);
-  ring.innerHTML = items.map((b) => `
-    <a class="rcard" href="/signup" data-id="${esc(b.id)}" aria-label="${esc(b.name)} the ${esc(b.kind)}, ${esc(price(b.price))}">
+  const card = (b, copy) => `
+    <a class="lcard" href="/signup" data-id="${esc(b.id)}" ${copy ? 'aria-hidden="true" tabindex="-1"' : ''}>
       <div class="bimg"><img alt=""></div>
       <h4>${esc(b.name)}</h4>
       <div class="bmeta"><span>${esc(b.kind)}</span><span class="bprice ${b.price ? '' : 'free'}">${price(b.price)}</span></div>
-    </a>`).join('');
-  ringCards = [...ring.querySelectorAll('.rcard')];
-  layoutRing();
-  return portraits(createStage, items.map((b) => b.id), { size: 360, distance: 4.6, target: 1.0 }).then((pics) => {
-    for (const el of ringCards) if (pics[el.dataset.id]) el.querySelector('img').src = pics[el.dataset.id];
+    </a>`;
+  // Two identical halves: the track slides left by exactly one half, then repeats seamlessly.
+  const half = items.map((b) => card(b, false)).join('') + items.map((b) => card(b, true)).join('');
+  $('#loopTrack').innerHTML = half + half.replace(/<a class="lcard" href="\/signup" data-id="([^"]+)" >/g, '<a class="lcard" href="/signup" data-id="$1" aria-hidden="true" tabindex="-1">');
+  return portraits(createStage, items.map((b) => b.id), { size: 240, distance: 4.6, target: 1.0 }).then((pics) => {
+    for (const el of document.querySelectorAll('.lcard')) if (pics[el.dataset.id]) el.querySelector('img').src = pics[el.dataset.id];
   });
 }).catch(() => {});
-
-// Cards sit around a circle; the ring turns slowly, faces turn to you as they come round.
-let ringRadius = 300;
-function layoutRing() {
-  const n = ringCards.length;
-  if (!n) return;
-  const w = ringCards[0].offsetWidth || 200;
-  const gap = innerWidth < 700 ? 6 : 44; // tighter ring on phones so the side cards stay on screen
-  ringRadius = Math.round((w / 2 + gap) / Math.tan(Math.PI / n));
-}
-addEventListener('resize', layoutRing);
-
-function renderRing() {
-  const n = ringCards.length;
-  ringCards.forEach((el, i) => {
-    const a = ((i / n) * 360 + ringAngle) % 360;
-    const rad = (a * Math.PI) / 180;
-    const front = (Math.cos(rad) + 1) / 2; // 1 = facing you, 0 = at the back
-    el.style.transform = `rotateY(${a}deg) translateZ(${ringRadius}px)`;
-    el.style.opacity = (0.28 + front * 0.72).toFixed(3);
-    el.style.zIndex = Math.round(front * 100);
-    el.classList.toggle('front', front > 0.93);
-  });
-}
-let lastT = performance.now();
-function spin(t) {
-  const dt = Math.min(64, t - lastT);
-  lastT = t;
-  if (!ringDrag && !ringHover && !reduced) ringAngle -= (ringSpeed * dt) / 1000; // degrees per second
-  renderRing();
-  requestAnimationFrame(spin);
-}
-requestAnimationFrame(spin);
-
-ringStage.addEventListener('pointerenter', () => { ringHover = true; });
-ringStage.addEventListener('pointerleave', () => { ringHover = false; });
-ringStage.addEventListener('pointerdown', (e) => { ringDrag = { x: e.clientX, a: ringAngle, moved: false }; });
-addEventListener('pointermove', (e) => {
-  if (!ringDrag) return;
-  const dx = e.clientX - ringDrag.x;
-  if (Math.abs(dx) > 4) ringDrag.moved = true;
-  ringAngle = ringDrag.a + dx * 0.35;
-});
-addEventListener('pointerup', () => { setTimeout(() => { ringDrag = null; }, 0); });
-ringStage.addEventListener('click', (e) => { if (ringDrag?.moved) e.preventDefault(); }, true);
-$('#ringPrev').addEventListener('click', () => { ringAngle += 360 / Math.max(1, ringCards.length); });
-$('#ringNext').addEventListener('click', () => { ringAngle -= 360 / Math.max(1, ringCards.length); });
 
 api('/api/download').then(({ windows }) => {
   if (windows) return;
